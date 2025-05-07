@@ -1,21 +1,30 @@
+// script.js
 const app = document.getElementById("app");
+let users = JSON.parse(localStorage.getItem("users") || "[]");
+let currentUser = JSON.parse(localStorage.getItem("currentUser") || "null");
+let groups = JSON.parse(localStorage.getItem("groups") || "[]");
 
-let currentUser = null;
-let groups = [];
+if (currentUser) renderDashboard();
+else renderLogin();
+
+function save() {
+  localStorage.setItem("users", JSON.stringify(users));
+  localStorage.setItem("currentUser", JSON.stringify(currentUser));
+  localStorage.setItem("groups", JSON.stringify(groups));
+}
 
 function renderLogin() {
   app.innerHTML = `
     <div class="banner">BUZU</div>
     <input type="text" id="phone" placeholder="Phone Number" />
     <input type="password" id="password" placeholder="Password" />
-    <label><input type="checkbox" id="showPass"> Show Password</label>
+    <label><input type="checkbox" id="showPass"></label>
     <button onclick="login()">Login</button>
     <div class="link-row">
       <a href="#" onclick="renderSignup()">Create an account</a>
       <a href="#" onclick="alert('Reset password feature coming soon')">Forgot your password?</a>
     </div>
   `;
-
   document.getElementById("showPass").addEventListener("change", (e) => {
     document.getElementById("password").type = e.target.checked ? "text" : "password";
   });
@@ -28,16 +37,37 @@ function renderSignup() {
     <input type="text" id="phone" placeholder="Phone Number" />
     <input type="password" id="password" placeholder="Password" />
     <input type="password" id="confirmPassword" placeholder="Confirm Password" />
-    <label><input type="checkbox" id="showSignupPass"> Show Password</label>
+    <label><input type="checkbox" id="showSignupPass"></label>
     <button onclick="signup()">Sign Up</button>
-    <div class="link-row"><a href="#" onclick="renderLogin()">Back to Login</a></div>
+    <div class="link-row"><a href="#" onclick="renderLogin()">← Back to Login</a></div>
   `;
-
   document.getElementById("showSignupPass").addEventListener("change", (e) => {
     const type = e.target.checked ? "text" : "password";
     document.getElementById("password").type = type;
     document.getElementById("confirmPassword").type = type;
   });
+}
+
+function login() {
+  const phone = document.getElementById("phone").value;
+  const password = document.getElementById("password").value;
+  const user = users.find(u => u.phone === phone && u.password === password);
+  if (!user) return alert("Invalid login");
+  currentUser = user;
+  save();
+  renderDashboard();
+}
+
+function signup() {
+  const name = document.getElementById("name").value;
+  const phone = document.getElementById("phone").value;
+  const password = document.getElementById("password").value;
+  const confirmPassword = document.getElementById("confirmPassword").value;
+  if (!name || !phone || !password || password !== confirmPassword) return alert("Please complete form correctly.");
+  users.push({ name, phone, password });
+  save();
+  alert("Account created!");
+  renderLogin();
 }
 
 function renderDashboard() {
@@ -47,17 +77,29 @@ function renderDashboard() {
     <button onclick="logout()">Logout</button>
     ${groups.map((group, i) => `
       <div class="group-box" onclick="openGroup(${i})">
-        ${group.name} <span class="arrow">→</span>
+        ${group.name} <span class="arrow-right">→</span>
       </div>
     `).join("")}
   `;
+}
+
+function createGroup() {
+  const name = prompt("Group name:");
+  if (!name) return;
+  groups.push({ name, members: [] });
+  save();
+  renderDashboard();
+}
+
+function openGroup(index) {
+  renderGroup(index);
 }
 
 function renderGroup(index) {
   const group = groups[index];
   app.innerHTML = `
     <div class="banner">
-      <span onclick="renderDashboard()" style="cursor:pointer;">←</span> ${group.name}
+      <span class="arrow-back" onclick="renderDashboard()">←</span> ${group.name}
     </div>
     <button onclick="addMember(${index})">Add Member</button>
     <button onclick="buzzAll(${index})">Buzz All</button>
@@ -70,76 +112,27 @@ function renderGroup(index) {
   `;
 }
 
-function login() {
-  const phone = document.getElementById("phone").value;
-  const password = document.getElementById("password").value;
-  const user = JSON.parse(localStorage.getItem(phone));
-  if (user && user.password === password) {
-    currentUser = user;
-    groups = user.groups || [];
-    renderDashboard();
-  } else {
-    alert("Invalid credentials");
-  }
-}
-
-function signup() {
-  const name = document.getElementById("name").value;
-  const phone = document.getElementById("phone").value;
-  const password = document.getElementById("password").value;
-  const confirm = document.getElementById("confirmPassword").value;
-  if (password !== confirm) {
-    alert("Passwords do not match");
-    return;
-  }
-  const user = { name, phone, password, groups: [] };
-  localStorage.setItem(phone, JSON.stringify(user));
-  alert("Account created");
-  renderLogin();
-}
-
-function logout() {
-  currentUser = null;
-  groups = [];
-  renderLogin();
-}
-
-function createGroup() {
-  const name = prompt("Group name:");
-  if (name) {
-    groups.push({ name, members: [] });
-    saveGroups();
-    renderDashboard();
-  }
-}
-
-function openGroup(index) {
-  renderGroup(index);
-}
-
-function addMember(groupIndex) {
+function addMember(index) {
   const name = prompt("Member name:");
-  const phone = prompt("Member phone:");
-  if (name && phone) {
-    groups[groupIndex].members.push({ name, phone });
-    saveGroups();
-    renderGroup(groupIndex);
-  }
+  const phone = prompt("Phone number:");
+  if (!name || !phone) return;
+  groups[index].members.push({ name, phone });
+  save();
+  renderGroup(index);
 }
 
 function removeMember(groupIndex, memberIndex) {
   groups[groupIndex].members.splice(memberIndex, 1);
-  saveGroups();
+  save();
   renderGroup(groupIndex);
 }
 
-function buzzAll(groupIndex) {
-  alert("Buzz sent to all members of " + groups[groupIndex].name);
+function buzzAll(index) {
+  alert("Buzz sent to all members in " + groups[index].name);
 }
 
-function saveGroups() {
-  currentUser.groups = groups;
-  localStorage.setItem(currentUser.phone, JSON.stringify(currentUser));
+function logout() {
+  currentUser = null;
+  save();
+  renderLogin();
 }
-
-renderLogin();
