@@ -1,5 +1,3 @@
-/* Clean and consistent styles for BUZU app */
-
 body {
   margin: 0;
   font-family: Arial, sans-serif;
@@ -7,115 +5,112 @@ body {
   display: flex;
   justify-content: center;
   align-items: start;
-  padding-top: 30px;
+  padding-top: 40px;
   min-height: 100vh;
 }
 
-.container {
+#app {
   width: 600px;
-  background-color: white;
-  border-radius: 10px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
-  padding: 20px;
-  box-sizing: border-box;
+  text-align: center;
 }
 
 .banner {
-  width: 100%;
-  background-color: #6cb2eb;
+  background-color: #5aa8e6;
   color: white;
-  text-align: center;
-  padding: 15px;
-  font-size: 20px;
-  border-radius: 10px 10px 0 0;
-  position: relative;
+  padding: 20px;
+  font-size: 24px;
+  font-weight: bold;
+  border-radius: 10px;
+  margin-bottom: 20px;
 }
 
 input[type="text"],
-input[type="password"] {
+input[type="password"],
+input[type="tel"],
+input[type="number"] {
   width: 100%;
-  padding: 10px;
-  margin-top: 10px;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 8px;
   border: 1px solid #ccc;
-  border-radius: 5px;
-  box-sizing: border-box;
   font-size: 16px;
-}
-
-input[type="checkbox"] {
-  margin-top: 15px;
+  box-sizing: border-box;
 }
 
 button {
-  background-color: #a3d0f7;
-  color: #003366;
+  width: 100%;
+  padding: 12px;
+  background-color: #a7d3f2;
   border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
+  border-radius: 8px;
   font-size: 16px;
-  margin-top: 15px;
+  cursor: pointer;
+  margin: 10px 0;
+  transition: background 0.3s;
 }
 
 button:hover {
-  background-color: #91c4f2;
+  background-color: #84bfe5;
+}
+
+.password-toggle {
+  margin: 10px 0;
 }
 
 .link-row {
-  margin-top: 10px;
   display: flex;
   justify-content: space-between;
   font-size: 14px;
+  margin-top: 10px;
 }
 
 .link-row a {
+  color: #0066cc;
   text-decoration: none;
-  color: #0077cc;
-  cursor: pointer;
 }
 
-.group-item {
-  border: 1px solid #ccc;
-  padding: 10px;
-  margin-top: 10px;
-  border-radius: 5px;
+.link-row a:hover {
+  text-decoration: underline;
+}
+
+.group-box {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background-color: #d6ebfc;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 10px 0;
   cursor: pointer;
 }
 
+.arrow-left,
 .arrow-right {
-  font-weight: bold;
-  font-size: 20px;
-}
-
-.arrow-left {
-  position: absolute;
-  left: 15px;
-  font-weight: bold;
   font-size: 20px;
   cursor: pointer;
 }
 
-.member-row {
+.members-list {
+  text-align: left;
+  margin-top: 20px;
+}
+
+.member-item {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  margin-top: 10px;
+  background: #eef6fb;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
 }
 
-.member-row input {
-  flex: 1;
-  margin-right: 10px;
+.member-item span {
+  flex-grow: 1;
 }
 
-.remove-x {
+.member-remove {
   color: red;
-  cursor: pointer;
   font-weight: bold;
-  font-size: 18px;
-}
-
-.hidden {
-  display: none;
+  cursor: pointer;
 }
