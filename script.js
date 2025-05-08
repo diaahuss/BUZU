@@ -9,6 +9,15 @@ function getUsers() {
   return JSON.parse(localStorage.getItem('buzu_users')) || [];
 }
 
+// --- SOCKET.IO SETUP ---
+const socket = io('https://buzzur.onrender.com');
+
+// When a buzz is received
+socket.on('buzz', () => {
+  const audio = new Audio('buzz.mp3');
+  audio.play();
+});
+
 function showLogin() {
   app.innerHTML = `
     <div class="banner">BUZU</div>
@@ -196,7 +205,9 @@ function removeMember(groupIndex, memberIndex) {
 }
 
 function buzzAll(groupIndex) {
-  alert(`Buzz sent to all members of "${currentUser.groups[groupIndex].name}"`);
+  const groupName = currentUser.groups[groupIndex].name;
+  socket.emit('buzz', { group: groupName });  // Optional: send group name
+  alert(`Buzz sent to all members of "${groupName}"`);
 }
 
 function logout() {
