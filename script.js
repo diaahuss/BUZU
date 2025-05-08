@@ -175,11 +175,27 @@ function saveGroups() {
   localStorage.setItem(currentUser.phone, JSON.stringify(currentUser));
 }
 
+// Unlock audio on first user interaction
+document.addEventListener("click", () => {
+  const audio = document.getElementById("buzz-audio");
+  if (audio) {
+    audio.play().then(() => {
+      audio.pause();
+      audio.currentTime = 0;
+      console.log("Audio unlocked");
+    }).catch((err) => {
+      console.log("Audio unlock failed:", err);
+    });
+  }
+}, { once: true });
+
 // Handle Incoming Buzz from Server
 socket.on("buzz", () => {
   alert("🔔 Buzz received!");
-  const audio = new Audio("buzz.mp3");
-  audio.play().catch(() => console.log("Audio playback failed or skipped."));
+  const audio = document.getElementById("buzz-audio");
+  if (audio) {
+    audio.play().catch(() => console.log("Audio playback failed or skipped."));
+  }
 });
 
 // Initial Load
