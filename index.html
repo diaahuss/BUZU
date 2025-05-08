@@ -1,57 +1,15 @@
-<<<<<<< HEAD
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>BUZU</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="stylesheet" href="style.css">
+  <title>BUZU</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="banner" id="banner">BUZU</header>
-  <main id="app"></main>
-  <audio id="buzz-sound" src="buzz.mp3" preload="auto"></audio>
+  <div id="app"></div>
+
+  <script src="https://cdn.socket.io/4.5.0/socket.io.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
-=======
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BUZZALL - Real-time Group Alerts</title>
-    <meta name="description" content="Group notification system for instant alerts">
-    
-    <!-- Font Awesome for icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
-          integrity="sha512-iecdLmaskl7CVkqkXNQ/ZH/XLlvWZOJyj7Yy7tcenmpD1ypASozpmT/E0iPtmFIB46ZmdtAc9eNBvH0H/ZpiBw==" 
-          crossorigin="anonymous" referrerpolicy="no-referrer" />
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-    
-    <!-- Our CSS -->
-    <link rel="stylesheet" href="style.css">
-    
-    <!-- Favicon (optional) -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🔔</text></svg>">
-</head>
-<body>
-    <!-- Main app container - all content will be rendered here by JavaScript -->
-    <div id="app" role="main"></div>
-
-    <!-- Buzz sound element with multiple sources for better compatibility -->
-    <audio id="buzzSound" preload="auto">
-        <source src="https://assets.mixkit.co/sfx/preview/mixkit-alarm-digital-clock-beep-989.mp3" type="audio/mpeg">
-        <source src="buzz.ogg" type="audio/ogg">
-        Your browser does not support the audio element.
-    </audio>
-
-    <!-- JavaScript at the end for better loading performance -->
-    <script src="script.js" defer></script>
-</body>
-</html>
->>>>>>> c07a09301e073e5ec273423c094fe5c79222bfbb
