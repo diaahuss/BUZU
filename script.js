@@ -12,7 +12,6 @@ function getUsers() {
 // --- SOCKET.IO SETUP ---
 const socket = io('https://buzzur.onrender.com');
 
-// When a buzz is received
 socket.on('buzz', () => {
   const audio = new Audio('buzz.mp3');
   audio.play();
