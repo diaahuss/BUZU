@@ -3,7 +3,7 @@ const app = document.getElementById("app");
 let currentUser = null;
 let groups = [];
 
-const socket = io('https://your-railway-app-url.com'); // replace with your actual Railway backend URL
+const socket = io('https://buzu-production-d070.up.railway.app/#'); // replace with your actual Railway backend URL
 
 // Render Login Screen
 function renderLogin() {
