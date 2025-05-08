@@ -3,6 +3,8 @@ const app = document.getElementById("app");
 let currentUser = null;
 let groups = [];
 
+const socket = io(); // Connect to backend
+
 function renderLogin() {
   app.innerHTML = `
     <div class="banner">BUZU</div>
@@ -55,6 +57,8 @@ function renderDashboard() {
 
 function renderGroup(index) {
   const group = groups[index];
+  socket.emit('joinGroup', group.name); // Join room on backend
+
   app.innerHTML = `
     <div class="banner">
       <span onclick="renderDashboard()" style="cursor:pointer;">←</span> ${group.name}
@@ -134,12 +138,22 @@ function removeMember(groupIndex, memberIndex) {
 }
 
 function buzzAll(groupIndex) {
-  alert("Buzz sent to all members of " + groups[groupIndex].name);
+  const group = groups[groupIndex];
+  socket.emit("buzz", { group: group.name }); // Send buzz to backend
+  alert("Buzz sent to all members of " + group.name);
 }
 
 function saveGroups() {
   currentUser.groups = groups;
   localStorage.setItem(currentUser.phone, JSON.stringify(currentUser));
 }
+
+// Handle incoming buzz
+socket.on("buzz", () => {
+  alert("🔔 Buzz received!");
+  // Optional: play a sound here
+  const audio = new Audio("buzz.mp3");
+  audio.play().catch(() => console.log("Audio playback skipped"));
+});
 
 renderLogin();
