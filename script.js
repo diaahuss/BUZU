@@ -205,7 +205,13 @@ function removeMember(groupIndex, memberIndex) {
 
 function buzzAll(groupIndex) {
   const groupName = currentUser.groups[groupIndex].name;
-  socket.emit('buzz', { group: groupName });  // Optional: send group name
+
+  // Join the group room (if not already joined)
+  socket.emit('joinGroup', groupName);
+
+  // Emit buzz to that group only
+  socket.emit('buzz', { group: groupName });
+
   alert(`Buzz sent to all members of "${groupName}"`);
 }
 
