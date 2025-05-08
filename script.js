@@ -1,14 +1,6 @@
 const app = document.getElementById('app');
 let currentUser = null;
 
-function saveUsers(users) {
-  localStorage.setItem('buzu_users', JSON.stringify(users));
-}
-
-function getUsers() {
-  return JSON.parse(localStorage.getItem('buzu_users')) || [];
-}
-
 // --- SOCKET.IO SETUP ---
 const socket = io('https://buzzur.onrender.com');
 
@@ -17,13 +9,21 @@ socket.on('buzz', () => {
   audio.play();
 });
 
+function saveUsers(users) {
+  localStorage.setItem('buzu_users', JSON.stringify(users));
+}
+
+function getUsers() {
+  return JSON.parse(localStorage.getItem('buzu_users')) || [];
+}
+
 function showLogin() {
   app.innerHTML = `
     <div class="banner">BUZU</div>
     <input type="tel" id="login-phone" placeholder="Phone number" />
     <input type="password" id="login-password" placeholder="Password" />
     <div class="password-toggle">
-      <input type="checkbox" id="toggle-login-password" />
+      <label><input type="checkbox" id="toggle-login-password" /> Show Password</label>
     </div>
     <button onclick="handleLogin()">Login</button>
     <div class="link-row">
@@ -45,7 +45,7 @@ function showSignup() {
     <input type="password" id="signup-password" placeholder="Password" />
     <input type="password" id="signup-confirm" placeholder="Confirm Password" />
     <div class="password-toggle">
-      <input type="checkbox" id="toggle-signup-password" />
+      <label><input type="checkbox" id="toggle-signup-password" /> Show Password</label>
     </div>
     <button onclick="handleSignup()">Sign Up</button>
     <div class="link-row">
@@ -111,7 +111,6 @@ function showMyGroups() {
     <button onclick="logout()">Logout</button>
     <div id="group-list"></div>
   `;
-
   renderGroupList();
 }
 
@@ -140,6 +139,8 @@ function createGroup() {
 
 function openGroup(index) {
   const group = currentUser.groups[index];
+  socket.emit('joinGroup', group.name);  // Join group when it's opened
+
   app.innerHTML = `
     <div class="banner">
       <span class="arrow-left" onclick="showMyGroups()">&lt;</span>
@@ -206,10 +207,7 @@ function removeMember(groupIndex, memberIndex) {
 function buzzAll(groupIndex) {
   const groupName = currentUser.groups[groupIndex].name;
 
-  // Join the group room (if not already joined)
-  socket.emit('joinGroup', groupName);
-
-  // Emit buzz to that group only
+  // Emit buzz to the group
   socket.emit('buzz', { group: groupName });
 
   alert(`Buzz sent to all members of "${groupName}"`);
