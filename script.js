@@ -3,8 +3,9 @@ const app = document.getElementById("app");
 let currentUser = null;
 let groups = [];
 
-const socket = io(); // Connect to backend
+const socket = io(); // Connect to backend server
 
+// Render Login Screen
 function renderLogin() {
   app.innerHTML = `
     <div class="banner">BUZU</div>
@@ -23,6 +24,7 @@ function renderLogin() {
   });
 }
 
+// Render Signup Screen
 function renderSignup() {
   app.innerHTML = `
     <div class="banner">BUZU - Create Account</div>
@@ -42,6 +44,7 @@ function renderSignup() {
   });
 }
 
+// Render Main Dashboard
 function renderDashboard() {
   app.innerHTML = `
     <div class="banner">Welcome, ${currentUser.name}</div>
@@ -55,9 +58,10 @@ function renderDashboard() {
   `;
 }
 
+// Render Individual Group View
 function renderGroup(index) {
   const group = groups[index];
-  socket.emit('joinGroup', group.name); // Join room on backend
+  socket.emit('joinGroup', group.name); // Join Socket.IO room
 
   app.innerHTML = `
     <div class="banner">
@@ -74,10 +78,12 @@ function renderGroup(index) {
   `;
 }
 
+// Handle Login
 function login() {
   const phone = document.getElementById("phone").value;
   const password = document.getElementById("password").value;
   const user = JSON.parse(localStorage.getItem(phone));
+
   if (user && user.password === password) {
     currentUser = user;
     groups = user.groups || [];
@@ -87,29 +93,44 @@ function login() {
   }
 }
 
+// Handle Signup
 function signup() {
   const name = document.getElementById("name").value;
   const phone = document.getElementById("phone").value;
   const password = document.getElementById("password").value;
   const confirm = document.getElementById("confirmPassword").value;
+
+  if (!name || !phone || !password || !confirm) {
+    alert("Please fill in all fields");
+    return;
+  }
+
   if (password !== confirm) {
     alert("Passwords do not match");
     return;
   }
+
+  if (localStorage.getItem(phone)) {
+    alert("Account with this phone already exists");
+    return;
+  }
+
   const user = { name, phone, password, groups: [] };
   localStorage.setItem(phone, JSON.stringify(user));
   alert("Account created");
   renderLogin();
 }
 
+// Handle Logout
 function logout() {
   currentUser = null;
   groups = [];
   renderLogin();
 }
 
+// Create a New Group
 function createGroup() {
-  const name = prompt("Group name:");
+  const name = prompt("Enter group name:");
   if (name) {
     groups.push({ name, members: [] });
     saveGroups();
@@ -117,13 +138,16 @@ function createGroup() {
   }
 }
 
+// Open a Group
 function openGroup(index) {
   renderGroup(index);
 }
 
+// Add a Member to a Group
 function addMember(groupIndex) {
   const name = prompt("Member name:");
   const phone = prompt("Member phone:");
+
   if (name && phone) {
     groups[groupIndex].members.push({ name, phone });
     saveGroups();
@@ -131,29 +155,32 @@ function addMember(groupIndex) {
   }
 }
 
+// Remove Member from Group
 function removeMember(groupIndex, memberIndex) {
   groups[groupIndex].members.splice(memberIndex, 1);
   saveGroups();
   renderGroup(groupIndex);
 }
 
+// Buzz All Members
 function buzzAll(groupIndex) {
   const group = groups[groupIndex];
-  socket.emit("buzz", { group: group.name }); // Send buzz to backend
-  alert("Buzz sent to all members of " + group.name);
+  socket.emit("buzz", { group: group.name });
+  alert(`Buzz sent to all members of "${group.name}"`);
 }
 
+// Save Group Changes to localStorage
 function saveGroups() {
   currentUser.groups = groups;
   localStorage.setItem(currentUser.phone, JSON.stringify(currentUser));
 }
 
-// Handle incoming buzz
+// Handle Incoming Buzz from Server
 socket.on("buzz", () => {
   alert("🔔 Buzz received!");
-  // Optional: play a sound here
   const audio = new Audio("buzz.mp3");
-  audio.play().catch(() => console.log("Audio playback skipped"));
+  audio.play().catch(() => console.log("Audio playback failed or skipped."));
 });
 
+// Initial Load
 renderLogin();
