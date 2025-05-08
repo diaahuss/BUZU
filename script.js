@@ -191,10 +191,17 @@ document.addEventListener("click", () => {
 
 // Handle Incoming Buzz from Server
 socket.on("buzz", () => {
-  alert("🔔 Buzz received!");
+  console.log("🔔 Buzz received!");
+  
   const audio = document.getElementById("buzz-audio");
+  
   if (audio) {
-    audio.play().catch(() => console.log("Audio playback failed or skipped."));
+    audio.currentTime = 0; // Rewind to start if playing
+    audio.play().catch((err) => {
+      console.warn("Buzz audio playback failed:", err);
+    });
+  } else {
+    console.warn("Buzz audio element not found.");
   }
 });
 
