@@ -1,0 +1,258 @@
+<<<<<<< HEAD
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f0f8ff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.banner {
+  background-color: #5ab9ea;
+  color: white;
+  text-align: center;
+  padding: 1em;
+  width: 100%;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+#app {
+  width: 600px;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+input, button, select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+button {
+  background-color: #a0d2f3;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+button:hover {
+  background-color: #7cc0eb;
+}
+
+.eye-icon {
+  position: absolute;
+  right: 10px;
+  top: 38px;
+  cursor: pointer;
+}
+
+.input-wrapper {
+  position: relative;
+}
+=======
+/* Base Styles */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+#app {
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.screen {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.banner {
+    background-color: #4a6bff;
+    color: white;
+    padding: 15px;
+    text-align: center;
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+/* Form Styles */
+.form-container {
+    padding: 20px;
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 500;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    box-sizing: border-box;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #4a6bff;
+}
+
+.links {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.links a {
+    color: #4a6bff;
+    text-decoration: none;
+    margin: 0 5px;
+}
+
+.links span {
+    color: #ccc;
+}
+
+/* Button Styles */
+.btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.btn.primary {
+    background-color: #4a6bff;
+    color: white;
+}
+
+.btn.secondary {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.btn.accent {
+    background-color: #ff6b4a;
+    color: white;
+}
+
+.btn.danger {
+    background-color: #ff4a4a;
+    color: white;
+}
+
+.btn.action {
+    display: inline-block;
+    width: auto;
+    margin: 5px;
+    padding: 8px 15px;
+}
+
+/* List Styles */
+.group-list, .member-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.group-item, .member-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    cursor: pointer;
+}
+
+.group-item:hover, .member-item:hover {
+    background-color: #f9f9f9;
+}
+
+.group-info h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.group-info span {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.member-info {
+    flex-grow: 1;
+}
+
+.member-name {
+    font-weight: 500;
+}
+
+.member-phone {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.remove-member {
+    color: #ff4a4a;
+    cursor: pointer;
+    padding: 5px;
+}
+
+/* Header Styles */
+.screen-header {
+    display: flex;
+    align-items: center;
+    padding: 15px;
+    border-bottom: 1px solid #eee;
+    position: relative;
+}
+
+.screen-header h2 {
+    margin: 0 auto;
+    text-align: center;
+}
+
+.back-button {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #4a6bff;
+    position: absolute;
+}
+
+/* Action Buttons Container */
+.action-buttons {
+    padding: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.group-actions {
+    padding: 10px;
+    text-align: center;
+}
+>>>>>>> c07a09301e073e5ec273423c094fe5c79222bfbb
