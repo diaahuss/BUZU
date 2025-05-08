@@ -1,13 +1,13 @@
 {
   "name": "buzu",
   "version": "1.0.0",
-  "description": "BUZU Web App - Buzz your groups in real-time",
+  "description": "BUZU real-time app",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "socket.io": "^4.7.5"
+    "socket.io": "^4.7.2"
   }
 }
