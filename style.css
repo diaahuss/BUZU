@@ -1,24 +1,22 @@
-/* Base Layout */
+/* General body styling */
 body {
   margin: 0;
   font-family: Arial, sans-serif;
   background-color: #f0f8ff;
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: start;
   padding-top: 40px;
   min-height: 100vh;
 }
 
-/* Main App Container */
+/* Main container */
 #app {
-  width: 100%;
-  max-width: 600px;
+  width: 600px;
   text-align: center;
-  padding: 0 16px;
 }
 
-/* Banner */
+/* Banner styling */
 .banner {
   background-color: #5aa8e6;
   color: white;
@@ -29,7 +27,7 @@ body {
   margin-bottom: 20px;
 }
 
-/* Inputs */
+/* Input fields */
 input[type="text"],
 input[type="password"],
 input[type="tel"],
@@ -43,12 +41,7 @@ input[type="number"] {
   box-sizing: border-box;
 }
 
-input:focus {
-  border-color: #5aa8e6;
-  outline: none;
-}
-
-/* Buttons */
+/* Button styling */
 button {
   width: 100%;
   padding: 12px;
@@ -61,35 +54,17 @@ button {
   transition: background 0.3s;
 }
 
+/* Hover effect on buttons */
 button:hover {
   background-color: #84bfe5;
 }
 
-/* Optional Classes for Special Buttons */
-button.danger {
-  background-color: #ff6b6b;
-  color: white;
-}
-
-button.danger:hover {
-  background-color: #e44c4c;
-}
-
-button.small {
-  width: auto;
-  padding: 8px 14px;
-  font-size: 14px;
-  margin: 6px;
-}
-
-/* Show Password */
+/* Password toggle checkbox styling */
 .password-toggle {
   margin: 10px 0;
-  font-size: 14px;
-  color: #444;
 }
 
-/* Link Row (e.g. Sign Up + Forgot Password) */
+/* Links layout (spacing between "Create account" and "Forgot password") */
 .link-row {
   display: flex;
   justify-content: space-between;
@@ -97,6 +72,7 @@ button.small {
   margin-top: 10px;
 }
 
+/* Link styling */
 .link-row a {
   color: #0066cc;
   text-decoration: none;
@@ -106,7 +82,7 @@ button.small {
   text-decoration: underline;
 }
 
-/* Group Box */
+/* Group list box styling */
 .group-box {
   display: flex;
   justify-content: space-between;
@@ -118,18 +94,20 @@ button.small {
   cursor: pointer;
 }
 
+/* Arrow icon style for navigating groups */
 .arrow-left,
 .arrow-right {
   font-size: 20px;
   cursor: pointer;
 }
 
-/* Members List */
+/* Member list styling */
 .members-list {
   text-align: left;
   margin-top: 20px;
 }
 
+/* Member item in the list */
 .member-item {
   display: flex;
   justify-content: space-between;
@@ -144,7 +122,7 @@ button.small {
   flex-grow: 1;
 }
 
-/* Remove Member Button */
+/* Remove member button style */
 .member-remove {
   color: black;
   background: none;
@@ -154,23 +132,4 @@ button.small {
   cursor: pointer;
   padding-left: 16px;
   margin-left: auto;
-}
-
-/* Responsive */
-@media (max-width: 600px) {
-  #app {
-    padding: 0 10px;
-  }
-
-  .link-row {
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .group-box {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
 }
