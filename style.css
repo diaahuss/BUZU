@@ -1,19 +1,24 @@
+/* Base Layout */
 body {
   margin: 0;
   font-family: Arial, sans-serif;
   background-color: #f0f8ff;
   display: flex;
   justify-content: center;
-  align-items: start;
+  align-items: flex-start;
   padding-top: 40px;
   min-height: 100vh;
 }
 
+/* Main App Container */
 #app {
-  width: 600px;
+  width: 100%;
+  max-width: 600px;
   text-align: center;
+  padding: 0 16px;
 }
 
+/* Banner */
 .banner {
   background-color: #5aa8e6;
   color: white;
@@ -24,6 +29,7 @@ body {
   margin-bottom: 20px;
 }
 
+/* Inputs */
 input[type="text"],
 input[type="password"],
 input[type="tel"],
@@ -37,6 +43,12 @@ input[type="number"] {
   box-sizing: border-box;
 }
 
+input:focus {
+  border-color: #5aa8e6;
+  outline: none;
+}
+
+/* Buttons */
 button {
   width: 100%;
   padding: 12px;
@@ -53,10 +65,31 @@ button:hover {
   background-color: #84bfe5;
 }
 
-.password-toggle {
-  margin: 10px 0;
+/* Optional Classes for Special Buttons */
+button.danger {
+  background-color: #ff6b6b;
+  color: white;
 }
 
+button.danger:hover {
+  background-color: #e44c4c;
+}
+
+button.small {
+  width: auto;
+  padding: 8px 14px;
+  font-size: 14px;
+  margin: 6px;
+}
+
+/* Show Password */
+.password-toggle {
+  margin: 10px 0;
+  font-size: 14px;
+  color: #444;
+}
+
+/* Link Row (e.g. Sign Up + Forgot Password) */
 .link-row {
   display: flex;
   justify-content: space-between;
@@ -73,6 +106,7 @@ button:hover {
   text-decoration: underline;
 }
 
+/* Group Box */
 .group-box {
   display: flex;
   justify-content: space-between;
@@ -90,6 +124,7 @@ button:hover {
   cursor: pointer;
 }
 
+/* Members List */
 .members-list {
   text-align: left;
   margin-top: 20px;
@@ -109,13 +144,33 @@ button:hover {
   flex-grow: 1;
 }
 
+/* Remove Member Button */
 .member-remove {
   color: black;
   background: none;
   border: none;
-  font-weight: normal; /* Not bold */
+  font-weight: normal;
   font-size: 18px;
   cursor: pointer;
-  padding-left: 16px;  /* Push it further to the right */
-  margin-left: auto;   /* Ensures it's pushed to the far right */
+  padding-left: 16px;
+  margin-left: auto;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  #app {
+    padding: 0 10px;
+  }
+
+  .link-row {
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .group-box {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
 }
