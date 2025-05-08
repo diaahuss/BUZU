@@ -1,228 +1,156 @@
 const app = document.getElementById('app');
+const banner = document.getElementById('banner');
+
 let currentUser = null;
+let users = JSON.parse(localStorage.getItem('users') || '{}');
 
-function saveUsers(users) {
-  localStorage.setItem('buzu_users', JSON.stringify(users));
+function saveUsers() {
+  localStorage.setItem('users', JSON.stringify(users));
 }
 
-function getUsers() {
-  return JSON.parse(localStorage.getItem('buzu_users')) || [];
+function togglePassword(id) {
+  const input = document.getElementById(id);
+  input.type = input.type === 'password' ? 'text' : 'password';
 }
-
-const socket = io('https://buzzur.onrender.com');
-
-socket.on('buzz', () => {
-  const audio = new Audio('buzz.mp3');
-  audio.play();
-});
 
 function showLogin() {
+  banner.textContent = 'BUZU';
   app.innerHTML = `
-    <div class="banner">BUZU</div>
-    <input type="tel" id="login-phone" placeholder="Phone number" />
-    <input type="password" id="login-password" placeholder="Password" />
-    <div class="password-toggle">
-      <input type="checkbox" id="toggle-login-password" />
+    <h2>Login</h2>
+    <div class="input-wrapper">
+      <input id="loginPhone" placeholder="Phone Number">
+    </div>
+    <div class="input-wrapper">
+      <input type="password" id="loginPass" placeholder="Password">
+      <span class="eye-icon" onclick="togglePassword('loginPass')">👁️</span>
     </div>
     <button onclick="handleLogin()">Login</button>
-    <div class="link-row">
-      <a href="#" onclick="showSignup()">Create an account</a>
-      <a href="#">Forgot your password?</a>
-    </div>
+    <p><a href="#" onclick="showSignup()">Sign Up</a></p>
   `;
-
-  document.getElementById('toggle-login-password').addEventListener('change', (e) => {
-    document.getElementById('login-password').type = e.target.checked ? 'text' : 'password';
-  });
 }
 
 function showSignup() {
+  banner.textContent = 'BUZU';
   app.innerHTML = `
-    <div class="banner">Create an Account</div>
-    <input type="text" id="signup-name" placeholder="Your Name" />
-    <input type="tel" id="signup-phone" placeholder="Phone number" />
-    <input type="password" id="signup-password" placeholder="Password" />
-    <input type="password" id="signup-confirm" placeholder="Confirm Password" />
-    <div class="password-toggle">
-      <input type="checkbox" id="toggle-signup-password" />
+    <h2>Sign Up</h2>
+    <input id="signupName" placeholder="Name">
+    <input id="signupPhone" placeholder="Phone Number">
+    <div class="input-wrapper">
+      <input type="password" id="signupPass" placeholder="Password">
+      <span class="eye-icon" onclick="togglePassword('signupPass')">👁️</span>
+    </div>
+    <div class="input-wrapper">
+      <input type="password" id="signupConfirm" placeholder="Confirm Password">
+      <span class="eye-icon" onclick="togglePassword('signupConfirm')">👁️</span>
     </div>
     <button onclick="handleSignup()">Sign Up</button>
-    <div class="link-row">
-      <a href="#" onclick="showLogin()">Back to Login</a>
-    </div>
+    <p><a href="#" onclick="showLogin()">Back to Login</a></p>
   `;
-
-  document.getElementById('toggle-signup-password').addEventListener('change', (e) => {
-    const type = e.target.checked ? 'text' : 'password';
-    document.getElementById('signup-password').type = type;
-    document.getElementById('signup-confirm').type = type;
-  });
 }
 
 function handleSignup() {
-  const name = document.getElementById('signup-name').value.trim();
-  const phone = document.getElementById('signup-phone').value.trim();
-  const password = document.getElementById('signup-password').value;
-  const confirm = document.getElementById('signup-confirm').value;
+  const name = document.getElementById('signupName').value;
+  const phone = document.getElementById('signupPhone').value;
+  const pass = document.getElementById('signupPass').value;
+  const confirm = document.getElementById('signupConfirm').value;
 
-  if (!name || !phone || !password || !confirm) {
-    alert('Please fill out all fields.');
-    return;
-  }
+  if (users[phone]) return alert('User already exists');
+  if (pass !== confirm) return alert('Passwords do not match');
 
-  if (password !== confirm) {
-    alert('Passwords do not match.');
-    return;
-  }
-
-  const users = getUsers();
-  if (users.some(u => u.phone === phone)) {
-    alert('Account already exists.');
-    return;
-  }
-
-  users.push({ name, phone, password, groups: [] });
-  saveUsers(users);
-  alert('Signup successful!');
+  users[phone] = { name, phone, pass, groups: [] };
+  saveUsers();
+  alert('Signed up!');
   showLogin();
 }
 
 function handleLogin() {
-  const phone = document.getElementById('login-phone').value.trim();
-  const password = document.getElementById('login-password').value;
+  const phone = document.getElementById('loginPhone').value;
+  const pass = document.getElementById('loginPass').value;
 
-  const users = getUsers();
-  const user = users.find(u => u.phone === phone && u.password === password);
-
-  if (!user) {
-    alert('Invalid phone or password.');
-    return;
-  }
+  const user = users[phone];
+  if (!user || user.pass !== pass) return alert('Invalid login');
 
   currentUser = user;
-  showMyGroups();
+  showDashboard();
 }
 
-function showMyGroups() {
+function showDashboard() {
+  banner.textContent = `Welcome, ${currentUser.name}`;
   app.innerHTML = `
-    <div class="banner">My Groups</div>
     <button onclick="createGroup()">Create Group</button>
+    <div id="groupList">${renderGroups()}</div>
     <button onclick="logout()">Logout</button>
-    <div id="group-list"></div>
   `;
-
-  renderGroupList();
 }
 
-function renderGroupList() {
-  const container = document.getElementById('group-list');
-  container.innerHTML = '';
-  currentUser.groups.forEach((group, index) => {
-    const groupDiv = document.createElement('div');
-    groupDiv.className = 'group-box';
-    groupDiv.innerHTML = `
-      ${group.name}
-      <span class="arrow-right" onclick="openGroup(${index})">&gt;</span>
-    `;
-    container.appendChild(groupDiv);
-  });
+function renderGroups() {
+  return currentUser.groups.map((g, i) => `
+    <div>
+      <strong>${g.name}</strong>
+      <button onclick="openGroup(${i})">Open</button>
+    </div>
+  `).join('');
 }
 
 function createGroup() {
-  const name = prompt('Enter group name:');
+  const name = prompt('Group name?');
   if (!name) return;
-
   currentUser.groups.push({ name, members: [] });
-  updateCurrentUser();
-  renderGroupList();
+  saveUsers();
+  showDashboard();
 }
 
 function openGroup(index) {
   const group = currentUser.groups[index];
+  banner.textContent = `Group: ${group.name}`;
   app.innerHTML = `
-    <div class="banner">
-      <span class="arrow-left" onclick="showMyGroups()">&lt;</span>
-      ${group.name}
-    </div>
-    <button onclick="editGroupName(${index})">Edit Name</button>
-    <button onclick="removeGroup(${index})">Remove Group</button>
+    <button onclick="editGroupName(${index})">Edit Group Name</button>
     <button onclick="addMember(${index})">Add Member</button>
     <button onclick="buzzAll(${index})">Buzz All</button>
-    <div class="members-list" id="members"></div>
+    <div>${group.members.map((m, i) => `
+      <div>
+        ${m.name} (${m.phone})
+        <button onclick="removeMember(${index}, ${i})">Remove</button>
+      </div>
+    `).join('')}</div>
+    <button onclick="showDashboard()">Back to Groups</button>
   `;
-
-  renderMembers(index);
 }
 
 function editGroupName(index) {
-  const newName = prompt('Enter new group name:');
-  if (!newName) return;
-  currentUser.groups[index].name = newName;
-  updateCurrentUser();
-  openGroup(index);
-}
-
-function removeGroup(index) {
-  if (confirm('Remove this group?')) {
-    currentUser.groups.splice(index, 1);
-    updateCurrentUser();
-    showMyGroups();
+  const newName = prompt('New group name?');
+  if (newName) {
+    currentUser.groups[index].name = newName;
+    saveUsers();
+    openGroup(index);
   }
 }
 
-function renderMembers(groupIndex) {
-  const group = currentUser.groups[groupIndex];
-  const container = document.getElementById('members');
-  container.innerHTML = '';
-
-  group.members.forEach((member, i) => {
-    const div = document.createElement('div');
-    div.className = 'member-item';
-    div.innerHTML = `
-      <span>${member.name} (${member.phone})</span>
-      <span class="member-remove" onclick="removeMember(${groupIndex}, ${i})">X</span>
-    `;
-    container.appendChild(div);
-  });
+function addMember(index) {
+  const name = prompt('Member name?');
+  const phone = prompt('Member phone?');
+  if (name && phone) {
+    currentUser.groups[index].members.push({ name, phone });
+    saveUsers();
+    openGroup(index);
+  }
 }
 
-function addMember(groupIndex) {
-  const name = prompt('Member name:');
-  const phone = prompt('Phone number:');
-  if (!name || !phone) return;
-
-  currentUser.groups[groupIndex].members.push({ name, phone });
-  updateCurrentUser();
-  renderMembers(groupIndex);
+function removeMember(groupIdx, memberIdx) {
+  currentUser.groups[groupIdx].members.splice(memberIdx, 1);
+  saveUsers();
+  openGroup(groupIdx);
 }
 
-function removeMember(groupIndex, memberIndex) {
-  currentUser.groups[groupIndex].members.splice(memberIndex, 1);
-  updateCurrentUser();
-  renderMembers(groupIndex);
-}
-
-function buzzAll(groupIndex) {
-  const groupName = currentUser.groups[groupIndex].name;
-
-  socket.emit('joinGroup', groupName);
-  socket.emit('buzz', { group: groupName });
-
-  alert(`Buzz sent to all members of "${groupName}"`);
+function buzzAll(index) {
+  const sound = document.getElementById('buzz-sound');
+  sound.play();
+  alert(`Buzz sent to ${currentUser.groups[index].members.length} members!`);
 }
 
 function logout() {
   currentUser = null;
   showLogin();
-}
-
-function updateCurrentUser() {
-  const users = getUsers();
-  const index = users.findIndex(u => u.phone === currentUser.phone);
-  if (index !== -1) {
-    users[index] = currentUser;
-    saveUsers(users);
-  }
 }
 
 showLogin();
