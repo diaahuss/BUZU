@@ -7,45 +7,38 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-// Serve static files from the current directory
+// Serve static files (HTML, CSS, JS, etc.) from the current directory
 app.use(express.static(path.join(__dirname)));
 
-// Store connected users and their associated groups
+// In-memory store for group memberships by socket ID
 const userGroups = {};
 
 io.on('connection', (socket) => {
-  console.log('A user connected');
+  console.log('🔌 User connected:', socket.id);
 
-  // When a user joins a group
   socket.on('joinGroup', (groupName) => {
-    console.log(`User joined group: ${groupName}`);
-    if (!userGroups[groupName]) {
-      userGroups[groupName] = [];
-    }
-    userGroups[groupName].push(socket.id); // Add socket ID to the group's list
+    console.log(`📢 Socket ${socket.id} joined group: ${groupName}`);
+    socket.join(groupName); // Let Socket.IO handle room logic
+    userGroups[socket.id] = userGroups[socket.id] || new Set();
+    userGroups[socket.id].add(groupName);
   });
 
-  // When a buzz is triggered for a specific group
-  socket.on('buzz', (data) => {
-    const { group } = data;
-    console.log(`Buzz sent to group: ${group}`);
-    if (userGroups[group]) {
-      // Emit the buzz only to the group members
-      userGroups[group].forEach(socketId => {
-        io.to(socketId).emit('buzz'); // Send the buzz to each member in the group
-      });
-    }
+  socket.on('buzz', ({ group }) => {
+    console.log(`🔔 Buzz requested for group: ${group}`);
+    io.to(group).emit('buzz');
   });
 
-  // Handle disconnect event
   socket.on('disconnect', () => {
-    console.log('A user disconnected');
-    // Remove the user from all groups they were part of
-    for (let group in userGroups) {
-      userGroups[group] = userGroups[group].filter(socketId => socketId !== socket.id);
+    console.log('❌ User disconnected:', socket.id);
+    const groups = userGroups[socket.id];
+    if (groups) {
+      groups.forEach(group => socket.leave(group));
+      delete userGroups[socket.id];
     }
   });
 });
 
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`🚀 BUZU server running at http://localhost:${PORT}`);
+});
