@@ -226,35 +226,33 @@ function initAudio() {
 }
 
 function buzzAll(groupIndex) {
-  const group = groups[groupIndex];
-  if (!group || group.members.length === 0) {
-    alert("Cannot buzz - group has no members!");
-    return;
-  }
-
-  // 1. Send to server first
-  socket.emit("buzz", { 
-    groupId: group.name,
-    sender: currentUser.phone,
-    senderName: currentUser.name
-  });
-
-  // 2. Play local sound
   try {
-    buzzAudio.currentTime = 0;
-    buzzAudio.play().catch(e => {
-      console.log("Buzz sound failed to play", e);
-    });
-  } catch (e) {
-    console.error("Buzz sound error:", e);
-  }
+    const group = groups[groupIndex];
+    if (!group || group.members.length === 0) {
+      alert("Cannot buzz - group has no members!");
+      return;
+    }
 
-  // 3. Show single confirmation
-  alert(`Buzz sent to ${group.name}!`);
-}
-    
+    // 1. Send to server
+    socket.emit("buzz", { 
+      groupId: group.name,
+      sender: currentUser.phone,
+      senderName: currentUser.name
+    });
+
+    // 2. Play local sound (fail silently if error occurs)
+    try {
+      buzzAudio.currentTime = 0;
+      buzzAudio.play().catch(e => console.log("Buzz sound failed", e));
+    } catch (e) {
+      console.error("Sound error:", e);
+    }
+
+    // 3. Show single confirmation
+    alert(`Buzz sent to ${group.name}!`);
+
   } catch (e) {
-    console.error("Buzz error:", e);
+    console.error("Buzz failed completely:", e);
     alert("Failed to send buzz");
   }
 }
