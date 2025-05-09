@@ -131,10 +131,12 @@ function logout() {
 // Create a New Group
 function createGroup() {
   const name = prompt("Enter group name:");
-  if (name) {
-    groups.push({ name, members: [] });
+  if (name && name.trim() !== "") {
+    groups.push({ name: name.trim(), members: [] });
     saveGroups();
     renderDashboard();
+  } else {
+    alert("Group name cannot be empty.");
   }
 }
 
@@ -145,46 +147,38 @@ function openGroup(index) {
 
 // Add a Member to a Group
 function addMember(groupIndex) {
-  const name = prompt("Member name:");
-  const phone = prompt("Member phone:");
+  const name = prompt("Enter member's name:");
+  const phone = prompt("Enter member's phone number:");
 
   if (name && phone) {
     groups[groupIndex].members.push({ name, phone });
     saveGroups();
     renderGroup(groupIndex);
+  } else {
+    alert("Both name and phone are required to add a member.");
   }
 }
 
-// Remove Member from Group
+// Remove a Member from a Group
 function removeMember(groupIndex, memberIndex) {
-  groups[groupIndex].members.splice(memberIndex, 1);
-  saveGroups();
-  renderGroup(groupIndex);
+  const group = groups[groupIndex];
+  if (group.members.length > 1) {
+    group.members.splice(memberIndex, 1);
+    saveGroups();
+    renderGroup(groupIndex);
+  } else {
+    alert("Cannot remove the last member from a group.");
+  }
 }
 
 // Buzz All Members
 function buzzAll(groupIndex) {
   const group = groups[groupIndex];
-  socket.emit("buzz", { group: group.name });
-  alert(`Buzz sent to all members of "${group.name}"`);
-}
-
-// Edit Group Name
-function editGroup(groupIndex) {
-  const newName = prompt("Enter new group name:", groups[groupIndex].name);
-  if (newName && newName.trim() !== "") {
-    groups[groupIndex].name = newName.trim();
-    saveGroups();
-    renderGroup(groupIndex);
-  }
-}
-
-// Remove Entire Group
-function removeGroup(groupIndex) {
-  if (confirm(`Delete group "${groups[groupIndex].name}"?`)) {
-    groups.splice(groupIndex, 1);
-    saveGroups();
-    renderGroups();
+  if (group.members.length > 0) {
+    socket.emit("buzz", { group: group.name });
+    alert(`Buzz sent to all members of "${group.name}"`);
+  } else {
+    alert("Cannot buzz an empty group.");
   }
 }
 
