@@ -198,52 +198,63 @@ function removeGroup(groupIndex) {
   }
 }
 
-// Buzz All Members
+// ====================== BUZZ SYSTEM ====================== //
+const buzzAudio = document.getElementById('buzz-audio');
+
+// 1. Audio Initialization (Preload + Unlock)
+function initAudio() {
+  if (buzzAudio) {
+    buzzAudio.volume = 1.0;
+    buzzAudio.load(); // Force preload
+    
+    // One-time unlock
+    const unlockAudio = () => {
+      buzzAudio.muted = false;
+      document.removeEventListener('click', unlockAudio);
+    };
+    document.addEventListener('click', unlockAudio, { once: true });
+  }
+}
+
+// 2. Play Buzz Locally (with error handling)
+function playBuzz() {
+  if (!buzzAudio) return;
+  
+  buzzAudio.currentTime = 0;
+  buzzAudio.play().catch(err => {
+    console.warn("Buzz blocked, retrying...", err);
+    buzzAudio.muted = false;
+    buzzAudio.play().catch(e => console.error("Final buzz failed:", e));
+  });
+}
+
+// 3. Group Buzzing System
 function buzzAll(groupIndex) {
   const group = groups[groupIndex];
-  if (group.members.length > 0) {
-    socket.emit("buzz", { group: group.name });
-    // Buzz is sent immediately without confirmation
-  } else {
+  
+  if (!group || group.members.length === 0) {
     alert("Cannot buzz an empty group.");
+    return;
   }
+
+  // Play local feedback immediately
+  playBuzz();
+  
+  // Send to server (broadcast to group)
+  socket.emit("buzz-group", { 
+    groupId: group.id,
+    sender: currentUser.phone 
+  });
 }
 
-// Save Group Changes to localStorage
-function saveGroups() {
-  currentUser.groups = groups;
-  localStorage.setItem(currentUser.phone, JSON.stringify(currentUser));
-}
-
-// Unlock audio on first user interaction
-document.addEventListener("click", () => {
-  const audio = document.getElementById("buzz-audio");
-  if (audio) {
-    audio.play().then(() => {
-      audio.pause();
-      audio.currentTime = 0;
-      console.log("Audio unlocked");
-    }).catch((err) => {
-      console.log("Audio unlock failed:", err);
-    });
-  }
-}, { once: true });
-
-// Handle Incoming Buzz from Server
-socket.on("buzz", () => {
-  console.log("🔔 Buzz received!");
-  
-  const audio = document.getElementById("buzz-audio");
-  
-  if (audio) {
-    audio.currentTime = 0; // Rewind to start if playing
-    audio.play().catch((err) => {
-      console.warn("Buzz audio playback failed:", err);
-    });
-  } else {
-    console.warn("Buzz audio element not found.");
+// 4. Handle Incoming Buzzes
+socket.on("buzz-group", (data) => {
+  if (data.sender !== currentUser.phone) { // Don't play our own buzz twice
+    playBuzz();
+    showBuzzNotification(data.sender); // Optional UI feedback
   }
 });
 
-// Initial Load
+// 5. Initialize on load
+initAudio();
 renderLogin();
