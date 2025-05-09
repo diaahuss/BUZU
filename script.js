@@ -143,41 +143,13 @@ function openGroup(index) {
   renderGroup(index);
 }
 
-// Render Group View (with Back Arrow in the header)
-function renderGroup(groupIndex) {
-  const group = groups[groupIndex];
-  const appDiv = document.getElementById("app");
-
-  appDiv.innerHTML = `
-    <div class="group-banner">
-      <button onclick="renderGroups()">← Back</button>
-      <h2>${group.name}</h2>
-    </div>
-    <button onclick="addMember(${groupIndex})">Add Member</button>
-    <button onclick="editGroup(${groupIndex})">Edit Group Name</button>
-    <button onclick="removeGroup(${groupIndex})">Remove Group</button>
-    <button onclick="buzzAll(${groupIndex})">Buzz All</button>
-    <ul>
-      ${group.members
-        .map(
-          (member, memberIndex) => `
-            <li>
-              ${member.name} (${member.phone})
-              <button onclick="removeMember(${groupIndex}, ${memberIndex})">Remove</button>
-            </li>
-          `
-        )
-        .join("")}
-    </ul>
-  `;
-}
-
 // Add a Member to a Group
 function addMember(groupIndex) {
   const name = prompt("Member name:");
   const phone = prompt("Member phone:");
+
   if (name && phone) {
-    groups[groupIndex].members.push({ name: name.trim(), phone: phone.trim() });
+    groups[groupIndex].members.push({ name, phone });
     saveGroups();
     renderGroup(groupIndex);
   }
@@ -188,6 +160,13 @@ function removeMember(groupIndex, memberIndex) {
   groups[groupIndex].members.splice(memberIndex, 1);
   saveGroups();
   renderGroup(groupIndex);
+}
+
+// Buzz All Members
+function buzzAll(groupIndex) {
+  const group = groups[groupIndex];
+  socket.emit("buzz", { group: group.name });
+  alert(`Buzz sent to all members of "${group.name}"`);
 }
 
 // Edit Group Name
@@ -207,13 +186,6 @@ function removeGroup(groupIndex) {
     saveGroups();
     renderGroups();
   }
-}
-
-// Buzz All Members
-function buzzAll(groupIndex) {
-  const group = groups[groupIndex];
-  socket.emit("buzz", { group: group.name });
-  alert(`Buzz sent to all members of "${group.name}"`);
 }
 
 // Save Group Changes to localStorage
