@@ -131,8 +131,8 @@ function logout() {
 // Create a New Group
 function createGroup() {
   const name = prompt("Enter group name:");
-  if (name && name.trim() !== "") {
-    groups.push({ name: name.trim(), members: [] });
+  if (name) {
+    groups.push({ name, members: [] });
     saveGroups();
     renderDashboard();
   }
@@ -143,13 +143,16 @@ function openGroup(index) {
   renderGroup(index);
 }
 
-// Render Group View
+// Render Group View (with Back Arrow in the header)
 function renderGroup(groupIndex) {
   const group = groups[groupIndex];
   const appDiv = document.getElementById("app");
 
   appDiv.innerHTML = `
-    <h2>Group: ${group.name}</h2>
+    <div class="group-banner">
+      <button onclick="renderGroups()">← Back</button>
+      <h2>${group.name}</h2>
+    </div>
     <button onclick="addMember(${groupIndex})">Add Member</button>
     <button onclick="editGroup(${groupIndex})">Edit Group Name</button>
     <button onclick="removeGroup(${groupIndex})">Remove Group</button>
@@ -158,15 +161,14 @@ function renderGroup(groupIndex) {
       ${group.members
         .map(
           (member, memberIndex) => `
-          <li>
-            ${member.name} (${member.phone})
-            <button onclick="removeMember(${groupIndex}, ${memberIndex})">Remove</button>
-          </li>
-        `
+            <li>
+              ${member.name} (${member.phone})
+              <button onclick="removeMember(${groupIndex}, ${memberIndex})">Remove</button>
+            </li>
+          `
         )
         .join("")}
     </ul>
-    <button onclick="renderGroups()">Back to My Groups</button>
   `;
 }
 
