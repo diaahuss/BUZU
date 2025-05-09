@@ -92,8 +92,12 @@ function login() {
   if (user && user.password === password) {
     currentUser = user;
     groups = user.groups || [];
-    initSocketConnection();
+    initSocketConnection();  // Initialize socket connection
+    initAudio();            // Initialize audio system
     renderDashboard();
+    
+    // Store login state
+    localStorage.setItem('currentUser', JSON.stringify(user));
   } else {
     alert("Invalid credentials");
   }
@@ -130,6 +134,7 @@ function logout() {
   socket.disconnect();
   currentUser = null;
   groups = [];
+  localStorage.removeItem('currentUser'); // Clear login state
   renderLogin();
 }
 
@@ -279,15 +284,25 @@ function initSocketConnection() {
 
 // ====================== INITIALIZATION ====================== //
 
-// Call this when the app starts
-initAudio();
-
-// Initialize socket when user logs in
-function login() {
-  // ... existing login code ...
-  initSocketConnection();
-  // ...
+// Initialize audio system (called once when app starts)
+function initAudio() {
+  const audio = document.getElementById('buzz-audio');
+  if (audio) {
+    audio.volume = 0.5;
+  }
 }
 
 // Start the app
-renderLogin();
+document.addEventListener('DOMContentLoaded', function() {
+  // Check for existing session
+  const savedUser = localStorage.getItem('currentUser');
+  if (savedUser) {
+    currentUser = JSON.parse(savedUser);
+    groups = currentUser.groups || [];
+    initSocketConnection();
+    initAudio();
+    renderDashboard();
+  } else {
+    renderLogin();
+  }
+});
