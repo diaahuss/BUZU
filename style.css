@@ -1,16 +1,21 @@
+/* ===== BASE STYLES ===== */
 body {
-  font-family: Arial, sans-serif;
+  font-family: 'Arial', sans-serif;
   background: #f2f9ff;
-  display: flex;
-  justify-content: center;
   margin: 0;
+  padding: 0;
+  min-height: 100vh;
 }
 
 #app {
-  width: 600px;
+  width: 100%;
+  max-width: 600px;
   padding: 20px;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
+/* ===== AUTH SCREENS ===== */
 .banner {
   background-color: #5daeff;
   color: white;
@@ -19,20 +24,28 @@ body {
   text-align: center;
   margin-bottom: 20px;
   border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 input {
   display: block;
   width: 100%;
-  padding: 10px;
+  padding: 12px;
   margin: 10px 0;
   font-size: 1em;
   border-radius: 6px;
   border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+input:focus {
+  outline: none;
+  border-color: #5daeff;
+  box-shadow: 0 0 0 2px rgba(93, 174, 255, 0.2);
 }
 
 button {
-  padding: 10px;
+  padding: 12px;
   margin: 10px 0;
   width: 100%;
   background-color: #77bbff;
@@ -41,63 +54,159 @@ button {
   font-size: 1em;
   border-radius: 6px;
   cursor: pointer;
-}
-
-.buzz-notification {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #333;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 5px;
-  z-index: 1000;
+  transition: background-color 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 button:hover {
   background-color: #5daeff;
 }
 
+button:active {
+  transform: translateY(1px);
+}
+
 .link-row {
   display: flex;
   justify-content: space-between;
+  margin-top: 15px;
   font-size: 0.9em;
 }
 
 .link-row a {
   color: #0077cc;
   text-decoration: none;
+  transition: color 0.2s;
+}
+
+.link-row a:hover {
+  color: #005fa3;
+  text-decoration: underline;
+}
+
+/* ===== DASHBOARD STYLES ===== */
+.group {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin: 15px 0;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .group-box {
-  background: white;
-  border: 1px solid #ccc;
-  padding: 12px;
-  border-radius: 8px;
-  margin: 10px 0;
+  padding: 15px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.group-box:hover {
+  background-color: #f5f9ff;
+}
+
+.group-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.group-actions button {
+  width: auto;
+  padding: 8px 12px;
+  margin: 0;
 }
 
 .arrow {
   font-weight: bold;
   color: #555;
+  font-size: 1.2em;
+  transition: transform 0.2s;
 }
 
-member-item {
+.group-box:hover .arrow {
+  transform: translateX(3px);
+}
+
+/* ===== GROUP MEMBER STYLES ===== */
+.members-list {
+  margin-top: 15px;
+}
+
+.member-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding: 12px;
   border-bottom: 1px solid #eee;
+  transition: background-color 0.2s;
+}
+
+.member-item:last-child {
+  border-bottom: none;
+}
+
+.member-item:hover {
+  background-color: #f8f8f8;
 }
 
 .remove-x {
   cursor: pointer;
-  color: red;
+  color: #ff4444;
   font-weight: bold;
-  margin-left: 10px;
+  font-size: 1.2em;
+  padding: 0 8px;
+  transition: color 0.2s;
+}
+
+.remove-x:hover {
+  color: #cc0000;
+}
+
+/* ===== BUZZ NOTIFICATION ===== */
+.buzz-notification {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #ff5722;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 30px;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: buzzIn 0.3s ease-out;
+  font-weight: bold;
+}
+
+@keyframes buzzIn {
+  0% { transform: translateX(-50%) scale(0.8); opacity: 0; }
+  50% { transform: translateX(-50%) scale(1.1); }
+  100% { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+@media (max-width: 480px) {
+  #app {
+    padding: 15px;
+  }
+  
+  .banner {
+    font-size: 1.2em;
+    padding: 12px;
+  }
+  
+  button {
+    padding: 10px;
+  }
+  
+  .group-box {
+    padding: 12px;
+  }
+  
+  .buzz-notification {
+    padding: 10px 20px;
+    font-size: 0.9em;
+  }
 }
