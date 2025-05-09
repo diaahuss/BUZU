@@ -200,24 +200,44 @@ function saveGroups() {
 
 // ====================== BUZZ SYSTEM ====================== //
 
-// Initialize audio element
-const buzzAudio = new Audio('buzz-sound.mp3');
-buzzAudio.volume = 0.5;
+let buzzAudio;
+
+// Initialize audio on first user interaction
+function initAudio() {
+  buzzAudio = document.getElementById('buzz-audio');
+  buzzAudio.volume = 0.5; // Set comfortable volume
+  
+  // Play silent audio to unlock audio permissions
+  document.addEventListener('click', function handleFirstClick() {
+    const silentAudio = new Audio();
+    silentAudio.muted = true;
+    silentAudio.play().then(() => {
+      console.log("Audio unlocked");
+    }).catch(e => console.log("Audio init error:", e));
+    
+    // Remove this listener after first click
+    document.removeEventListener('click', handleFirstClick);
+  }, { once: true });
+}
 
 function buzzAll(groupIndex) {
   const group = groups[groupIndex];
   if (!group || group.members.length === 0) {
-    alert("Cannot buzz an empty group.");
+    alert("Cannot buzz - group has no members!");
     return;
   }
 
-  // Play sound locally immediately
+  // 1. Show confirmation the buzz was sent
+  alert(`Buzz sent to ${group.name}!`);
+  
+  // 2. Play local sound
   playBuzzSound();
   
-  // Send buzz to server
-  socket.emit("buzz-group", { 
+  // 3. Send to server
+  socket.emit("buzz", { 
     groupId: group.name,
-    sender: currentUser.phone 
+    sender: currentUser.phone,
+    senderName: currentUser.name
   });
 }
 
@@ -225,16 +245,12 @@ function playBuzzSound() {
   try {
     buzzAudio.currentTime = 0;
     buzzAudio.play().catch(e => {
-      console.log("First buzz attempt failed, trying again...", e);
-      // Fallback for browsers that block autoplay
-      document.body.addEventListener('click', function enableBuzz() {
-        buzzAudio.play().then(() => {
-          document.body.removeEventListener('click', enableBuzz);
-        }).catch(e => console.log("Final buzz attempt failed", e));
-      }, { once: true });
+      console.log("Buzz sound failed, showing alert instead");
+      alert("BUZZ! BUZZ! BUZZ!");
     });
   } catch (e) {
-    console.error("Buzz sound error:", e);
+    console.error("Buzz error:", e);
+    alert("BUZZ! BUZZ! BUZZ!");
   }
 }
 
@@ -243,21 +259,16 @@ function playBuzzSound() {
 function initSocketConnection() {
   socket.on("connect", () => {
     console.log("Connected to server");
-    
-    // Join all groups on reconnect
-    groups.forEach(group => {
-      socket.emit('joinGroup', { 
-        groupId: group.name, 
-        phone: currentUser.phone 
-      });
-    });
   });
 
-  socket.on("buzz-group", (data) => {
-    // Only play sound if buzz came from someone else
+  socket.on("buzz", (data) => {
+    // Only show if buzz came from someone else
     if (data.sender !== currentUser.phone) {
+      // Show who buzzed you
+      alert(`${data.senderName} buzzed the group!`);
+      
+      // Try to play sound
       playBuzzSound();
-      showBuzzNotification(data.sender);
     }
   });
 
@@ -266,31 +277,17 @@ function initSocketConnection() {
   });
 }
 
-function showBuzzNotification(senderPhone) {
-  const notification = document.createElement('div');
-  notification.className = 'buzz-notification';
-  notification.textContent = `${senderPhone} buzzed the group!`;
-  document.body.appendChild(notification);
-  
-  setTimeout(() => {
-    notification.remove();
-  }, 3000);
-}
-
 // ====================== INITIALIZATION ====================== //
 
-// Handle audio permission on first click
-document.addEventListener('click', function initAudio() {
-  // Play silent audio to unlock audio permissions
-  const silentAudio = new Audio();
-  silentAudio.muted = true;
-  silentAudio.play().then(() => {
-    console.log("Audio permissions unlocked");
-  }).catch(e => console.log("Audio init error:", e));
-  
-  // Remove this listener after first click
-  document.removeEventListener('click', initAudio);
-}, { once: true });
+// Call this when the app starts
+initAudio();
+
+// Initialize socket when user logs in
+function login() {
+  // ... existing login code ...
+  initSocketConnection();
+  // ...
+}
 
 // Start the app
 renderLogin();
