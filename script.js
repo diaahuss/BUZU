@@ -11,7 +11,7 @@ function renderLogin() {
     <div class="banner">BUZU</div>
     <input type="text" id="phone" placeholder="Phone Number" />
     <input type="password" id="password" placeholder="Password" />
-    <label><input type="checkbox" id="showPass"> Show Password</label>
+    <input type="checkbox" id="showPass" title="Show Password">
     <button onclick="login()">Login</button>
     <div class="link-row">
       <a href="#" onclick="renderSignup()">Create an account</a>
@@ -32,7 +32,7 @@ function renderSignup() {
     <input type="text" id="phone" placeholder="Phone Number" />
     <input type="password" id="password" placeholder="Password" />
     <input type="password" id="confirmPassword" placeholder="Confirm Password" />
-    <label><input type="checkbox" id="showSignupPass"> Show Password</label>
+    <input type="checkbox" id="showSignupPass" title="Show Password">
     <button onclick="signup()">Sign Up</button>
     <div class="link-row"><a href="#" onclick="renderLogin()">Back to Login</a></div>
   `;
