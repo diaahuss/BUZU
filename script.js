@@ -203,7 +203,7 @@ function buzzAll(groupIndex) {
   const group = groups[groupIndex];
   if (group.members.length > 0) {
     socket.emit("buzz", { group: group.name });
-    alert(`Buzz sent to all members of "${group.name}"`);
+    // Buzz is sent immediately without confirmation
   } else {
     alert("Cannot buzz an empty group.");
   }
