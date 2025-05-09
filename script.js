@@ -177,7 +177,7 @@ function editGroup(groupIndex) {
   if (newName && newName.trim() !== "") {
     groups[groupIndex].name = newName.trim();
     saveGroups();
-    renderGroup(groupIndex);  // Re-render the group after editing
+    renderDashboard();  // Re-render the dashboard after editing
   } else {
     alert("Group name cannot be empty.");
   }
@@ -207,6 +207,50 @@ function buzzAll(groupIndex) {
 function saveGroups() {
   currentUser.groups = groups;
   localStorage.setItem(currentUser.phone, JSON.stringify(currentUser));
+}
+
+// Render Groups on Dashboard
+function renderDashboard() {
+  const appDiv = document.getElementById("app");
+  appDiv.innerHTML = "<h2>My Groups</h2>";
+  
+  groups.forEach((group, index) => {
+    appDiv.innerHTML += `
+      <div class="group">
+        <h3>${group.name}</h3>
+        <button onclick="openGroup(${index})">Open Group</button>
+        <button onclick="editGroup(${index})">Edit Group</button>
+        <button onclick="removeGroup(${index})">Remove Group</button>
+        <button onclick="buzzAll(${index})">Buzz All</button>
+      </div>
+    `;
+  });
+}
+
+// Render Group View
+function renderGroup(groupIndex) {
+  const group = groups[groupIndex];
+  const appDiv = document.getElementById("app");
+
+  appDiv.innerHTML = `
+    <h2>${group.name}</h2>
+    <button onclick="renderDashboard()">Back to Groups</button>
+    <button onclick="addMember(${groupIndex})">Add Member</button>
+    <button onclick="buzzAll(${groupIndex})">Buzz All</button>
+    <h3>Members:</h3>
+    <ul>
+      ${group.members
+        .map(
+          (member, memberIndex) => `
+        <li>
+          ${member.name} (${member.phone})
+          <button onclick="removeMember(${groupIndex}, ${memberIndex})">Remove</button>
+        </li>
+      `
+        )
+        .join("")}
+    </ul>
+  `;
 }
 
 // Unlock audio on first user interaction
