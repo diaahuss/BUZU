@@ -143,6 +143,33 @@ function openGroup(index) {
   renderGroup(index);
 }
 
+// Render Group View
+function renderGroup(groupIndex) {
+  const group = groups[groupIndex];
+  const appDiv = document.getElementById("app");
+
+  appDiv.innerHTML = `
+    <h2>Group: ${group.name}</h2>
+    <button onclick="addMember(${groupIndex})">Add Member</button>
+    <button onclick="editGroup(${groupIndex})">Edit Group Name</button>
+    <button onclick="removeGroup(${groupIndex})">Remove Group</button>
+    <button onclick="buzzAll(${groupIndex})">Buzz All</button>
+    <ul>
+      ${group.members
+        .map(
+          (member, memberIndex) => `
+        <li>
+          ${member.name} (${member.phone})
+          <button onclick="removeMember(${groupIndex}, ${memberIndex})">Remove</button>
+        </li>
+      `
+        )
+        .join("")}
+    </ul>
+    <button onclick="renderGroups()">Back to My Groups</button>
+  `;
+}
+
 // Add a Member to a Group
 function addMember(groupIndex) {
   const name = prompt("Member name:");
@@ -162,11 +189,31 @@ function removeMember(groupIndex, memberIndex) {
   renderGroup(groupIndex);
 }
 
+// Edit Group Name
+function editGroup(groupIndex) {
+  const newName = prompt("Enter new group name:", groups[groupIndex].name);
+  if (newName && newName.trim() !== "") {
+    groups[groupIndex].name = newName.trim();
+    saveGroups();
+    renderGroup(groupIndex);
+  }
+}
+
+// Remove Entire Group
+function removeGroup(groupIndex) {
+  if (confirm(`Delete group "${groups[groupIndex].name}"?`)) {
+    groups.splice(groupIndex, 1);
+    saveGroups();
+    renderGroups();
+  }
+}
+
 // Buzz All Members
 function buzzAll(groupIndex) {
   const group = groups[groupIndex];
   socket.emit("buzz", { group: group.name });
-  alert(`Buzz sent to all members of "${group.name}"`);
+
+  console.log(`Buzz sent to all members of "${group.name}"`);
 }
 
 // Save Group Changes to localStorage
