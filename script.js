@@ -137,67 +137,209 @@ function logout() {
 
 // ====================== GROUP MANAGEMENT ====================== //
 
+/**
+ * Creates a new group with the current user as the first member
+ * @returns {void}
+ */
 function createGroup() {
   const name = prompt("Enter group name:");
-  if (name && name.trim() !== "") {
-    const newGroup = { 
-      id: Date.now().toString(),
-      name: name.trim(), 
-      members: [{ 
-        name: currentUser.name, 
-        phone: currentUser.phone 
-      }] 
-    };
-    groups.push(newGroup);
-    saveGroups();
-    renderDashboard();
+  if (!name || name.trim() === "") {
+    alert("Group name cannot be empty!");
+    return;
   }
+
+  const trimmedName = name.trim();
+  
+  // Check if group name already exists
+  if (groups.some(group => group.name === trimmedName)) {
+    alert(`A group named "${trimmedName}" already exists!`);
+    return;
+  }
+
+  const newGroup = { 
+    id: generateGroupId(),
+    name: trimmedName, 
+    members: [{ 
+      name: currentUser.name, 
+      phone: currentUser.phone,
+      isAdmin: true 
+    }],
+    createdAt: new Date().toISOString()
+  };
+  
+  groups.push(newGroup);
+  saveGroups();
+  renderDashboard();
+  alert(`Group "${trimmedName}" created successfully!`);
 }
 
+/**
+ * Adds a new member to the specified group
+ * @param {number} groupIndex - Index of the group in the groups array
+ * @returns {void}
+ */
 function addMember(groupIndex) {
-  const name = prompt("Enter member's name:");
-  const phone = prompt("Enter member's phone number:");
-
-  if (name && phone) {
-    groups[groupIndex].members.push({ name, phone });
-    saveGroups();
-    renderGroup(groupIndex);
+  const group = groups[groupIndex];
+  if (!group) {
+    alert("Group not found!");
+    return;
   }
+
+  const name = prompt("Enter member's name:");
+  if (!name || name.trim() === "") {
+    alert("Member name cannot be empty!");
+    return;
+  }
+
+  const phone = prompt("Enter member's phone number:");
+  if (!validatePhoneNumber(phone)) {
+    alert("Invalid phone number format!");
+    return;
+  }
+
+  // Check if member already exists in group
+  if (group.members.some(member => member.phone === phone)) {
+    alert("This member already exists in the group!");
+    return;
+  }
+
+  group.members.push({ 
+    name: name.trim(), 
+    phone: phone,
+    isAdmin: false 
+  });
+  
+  saveGroups();
+  renderGroup(groupIndex);
+  alert(`Member ${name.trim()} added successfully!`);
 }
 
+/**
+ * Removes a member from the specified group
+ * @param {number} groupIndex - Index of the group
+ * @param {number} memberIndex - Index of the member in the group's members array
+ * @returns {void}
+ */
 function removeMember(groupIndex, memberIndex) {
   const group = groups[groupIndex];
-  if (group.members.length > 1) {
+  if (!group) {
+    alert("Group not found!");
+    return;
+  }
+
+  if (memberIndex < 0 || memberIndex >= group.members.length) {
+    alert("Invalid member index!");
+    return;
+  }
+
+  const member = group.members[memberIndex];
+  
+  // Prevent removing last member
+  if (group.members.length <= 1) {
+    alert("Cannot remove the last member from a group!");
+    return;
+  }
+
+  // Prevent removing admin unless it's the current user
+  if (member.isAdmin && member.phone !== currentUser.phone) {
+    alert("Cannot remove another admin member!");
+    return;
+  }
+
+  if (confirm(`Remove member "${member.name}" from group "${group.name}"?`)) {
     group.members.splice(memberIndex, 1);
     saveGroups();
     renderGroup(groupIndex);
-  } else {
-    alert("Cannot remove the last member from a group.");
   }
 }
 
+/**
+ * Edits the name of the specified group
+ * @param {number} groupIndex - Index of the group
+ * @returns {void}
+ */
 function editGroup(groupIndex) {
-  const newName = prompt("Enter new group name:", groups[groupIndex].name);
-  if (newName && newName.trim() !== "") {
-    groups[groupIndex].name = newName.trim();
-    saveGroups();
-    renderDashboard();
+  const group = groups[groupIndex];
+  if (!group) {
+    alert("Group not found!");
+    return;
   }
+
+  const newName = prompt("Enter new group name:", group.name);
+  if (!newName || newName.trim() === "") {
+    alert("Group name cannot be empty!");
+    return;
+  }
+
+  const trimmedName = newName.trim();
+  if (trimmedName === group.name) return; // No change
+
+  // Check if new name already exists
+  if (groups.some(g => g.name === trimmedName && g.id !== group.id)) {
+    alert(`A group named "${trimmedName}" already exists!`);
+    return;
+  }
+
+  group.name = trimmedName;
+  saveGroups();
+  renderDashboard();
 }
 
+/**
+ * Deletes the specified group
+ * @param {number} groupIndex - Index of the group
+ * @returns {void}
+ */
 function removeGroup(groupIndex) {
-  if (confirm(`Delete group "${groups[groupIndex].name}"?`)) {
+  const group = groups[groupIndex];
+  if (!group) {
+    alert("Group not found!");
+    return;
+  }
+
+  // Check if current user is admin of the group
+  const isAdmin = group.members.some(
+    member => member.phone === currentUser.phone && member.isAdmin
+  );
+
+  if (!isAdmin) {
+    alert("Only group admins can delete the group!");
+    return;
+  }
+
+  if (confirm(`Permanently delete group "${group.name}" and all its members?`)) {
     groups.splice(groupIndex, 1);
     saveGroups();
     renderDashboard();
   }
 }
 
+/**
+ * Saves groups to localStorage
+ * @returns {void}
+ */
 function saveGroups() {
-  if (currentUser) {
+  if (!currentUser) {
+    console.error("No current user found!");
+    return;
+  }
+  
+  try {
     currentUser.groups = groups;
     localStorage.setItem(currentUser.phone, JSON.stringify(currentUser));
+  } catch (error) {
+    console.error("Failed to save groups:", error);
+    alert("Failed to save groups. See console for details.");
   }
+}
+
+// Helper functions
+function generateGroupId() {
+  return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+}
+
+function validatePhoneNumber(phone) {
+  return phone && /^[0-9]{10,15}$/.test(phone);
 }
 
 // ====================== BUZZ SYSTEM ====================== //
