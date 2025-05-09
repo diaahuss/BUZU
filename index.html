@@ -4,14 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>BUZU</title>
+  <link rel="icon" href="data:,"> <!-- Prevents favicon 404 error -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <main id="app"></main>
 
-  <!-- Single audio element in body -->
-  <audio id="buzz-audio" src="buzz-sound.mp3" preload="auto"></audio>
-
+  <!-- No audio element needed here since we create it dynamically in JavaScript -->
+  
   <!-- Socket.io -->
   <script src="https://cdn.socket.io/4.1.3/socket.io.min.js"></script>
   
