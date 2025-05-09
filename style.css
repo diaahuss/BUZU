@@ -45,15 +45,14 @@ button {
 
 .buzz-notification {
   position: fixed;
-  top: 20px;
+  bottom: 20px;
   left: 50%;
   transform: translateX(-50%);
-  background: #ff4444;
+  background: #333;
   color: white;
   padding: 10px 20px;
   border-radius: 5px;
   z-index: 1000;
-  animation: fadeInOut 2s ease-out;
 }
 
 button:hover {
@@ -88,18 +87,17 @@ button:hover {
   color: #555;
 }
 
-.member-item {
+member-item {
   display: flex;
   justify-content: space-between;
-  padding: 8px;
-  background: white;
-  margin: 6px 0;
-  border-radius: 6px;
-  border: 1px solid #ddd;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
 }
 
 .remove-x {
-  color: red;
   cursor: pointer;
+  color: red;
   font-weight: bold;
+  margin-left: 10px;
 }
