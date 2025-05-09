@@ -233,27 +233,40 @@ function buzzAll(groupIndex) {
       return;
     }
 
-    // 1. Send to server
-    socket.emit("buzz", { 
+    // 1. Play sound FIRST (so user gets immediate feedback)
+    playBuzzSound(); 
+
+    // 2. Send to server
+    socket.emit("buzz", {
       groupId: group.name,
-      sender: currentUser.phone,
+      sender: currentUser.phone, 
       senderName: currentUser.name
     });
 
-    // 2. Play local sound (fail silently if error occurs)
-    try {
-      buzzAudio.currentTime = 0;
-      buzzAudio.play().catch(e => console.log("Buzz sound failed", e));
-    } catch (e) {
-      console.error("Sound error:", e);
-    }
-
-    // 3. Show single confirmation
+    // 3. Show confirmation
     alert(`Buzz sent to ${group.name}!`);
 
   } catch (e) {
-    console.error("Buzz failed completely:", e);
+    console.error("Error:", e);
     alert("Failed to send buzz");
+  }
+}
+
+// Sound handling (must be defined globally)
+const buzzAudio = new Audio('buzz-sound.mp3'); // <-- IMPORTANT: Verify path
+
+function playBuzzSound() {
+  try {
+    buzzAudio.currentTime = 0; // Rewind if already played
+    buzzAudio.play()
+      .then(() => console.log("Buzz sound played"))
+      .catch(e => {
+        console.error("Sound blocked:", e);
+        // Fallback: Create new audio instance if blocked
+        new Audio('buzz-sound.mp3').play().catch(e => console.log("Fallback failed"));
+      });
+  } catch (e) {
+    console.error("Sound error:", e);
   }
 }
 
