@@ -3,18 +3,18 @@ let currentUser = null;
 let groups = [];
 const socket = io('https://buzu-production-d070.up.railway.app/#'); // Railway backend URL
 
-// ====================== CORE FUNCTIONS ====================== //
+// ====================== RENDER FUNCTIONS ====================== //
 
 function renderLogin() {
   app.innerHTML = `
     <div class="banner">BUZU</div>
     <input type="text" id="phone" placeholder="Phone Number" />
     <input type="password" id="password" placeholder="Password" />
-    <input type="checkbox" id="showPass"> Show Password
+    <input type="checkbox" id="showPass" title="Show Password">
     <button onclick="login()">Login</button>
     <div class="link-row">
-      <a href="#" onclick="renderSignup()">Create account</a>
-      <a href="#" onclick="alert('Reset password coming soon')">Forgot password?</a>
+      <a href="#" onclick="renderSignup()">Create an account</a>
+      <a href="#" onclick="alert('Reset password feature coming soon')">Forgot your password?</a>
     </div>
   `;
 
@@ -25,12 +25,12 @@ function renderLogin() {
 
 function renderSignup() {
   app.innerHTML = `
-    <div class="banner">BUZU - Sign Up</div>
+    <div class="banner">BUZU - Create Account</div>
     <input type="text" id="name" placeholder="Name" />
     <input type="text" id="phone" placeholder="Phone Number" />
     <input type="password" id="password" placeholder="Password" />
     <input type="password" id="confirmPassword" placeholder="Confirm Password" />
-    <input type="checkbox" id="showSignupPass"> Show Password
+    <input type="checkbox" id="showSignupPass" title="Show Password">
     <button onclick="signup()">Sign Up</button>
     <div class="link-row"><a href="#" onclick="renderLogin()">Back to Login</a></div>
   `;
@@ -45,24 +45,18 @@ function renderSignup() {
 function renderDashboard() {
   app.innerHTML = `
     <div class="banner">Welcome, ${currentUser.name}</div>
-    <button class="btn" onclick="createGroup()">Create Group</button>
-    <button class="btn" onclick="logout()">Logout</button>
+    <button onclick="createGroup()">Create Group</button>
+    <button onclick="logout()">Logout</button>
     <h2>My Groups</h2>
-    <div class="groups-container">
-      ${groups.map((group, index) => `
-        <div class="group-card">
-          <div class="group-header" onclick="renderGroup(${index})">
-            <h3>${group.name}</h3>
-            <span class="member-count">${group.members.length} member${group.members.length !== 1 ? 's' : ''}</span>
-            <span class="arrow">→</span>
-          </div>
-          <div class="group-actions">
-            <button onclick="event.stopPropagation(); editGroup(${index})">Edit</button>
-            <button onclick="event.stopPropagation(); removeGroup(${index})">Delete</button>
-          </div>
+    ${groups.map((group, index) => `
+      <div class="group">
+        <div class="group-box" onclick="openGroup(${index})">
+          ${group.name} <span class="arrow">→</span>
         </div>
-      `).join("")}
-    </div>
+        <button onclick="event.stopPropagation(); editGroup(${index})">Edit</button>
+        <button onclick="event.stopPropagation(); removeGroup(${index})">Remove</button>
+      </div>
+    `).join("")}
   `;
 }
 
@@ -72,21 +66,16 @@ function renderGroup(index) {
 
   app.innerHTML = `
     <div class="banner">
-      <span class="back-btn" onclick="renderDashboard()">← Back</span>
-      ${group.name}
+      <span onclick="renderDashboard()" style="cursor:pointer;">←</span> ${group.name}
     </div>
-    <div class="group-actions">
-      <button class="btn" onclick="addMember(${index})">Add Member</button>
-      <button class="btn" onclick="buzzAll(${index})">Buzz All</button>
-    </div>
-    <h3>Members</h3>
+    <button onclick="addMember(${index})">Add Member</button>
+    <button onclick="buzzAll(${index})">Buzz All</button>
+    <h3>Members:</h3>
     <div class="members-list">
-      ${group.members.map((member, i) => `
+      ${group.members.map((m, i) => `
         <div class="member-item">
-          <span>${member.name} (${member.phone})</span>
-          ${member.phone !== currentUser.phone ? 
-            `<button onclick="event.stopPropagation(); removeMember(${index}, ${i})">Remove</button>` : 
-            '<span class="you">You</span>'}
+          <span>${m.name} (${m.phone})</span>
+          <span class="remove-x" onclick="event.stopPropagation(); removeMember(${index}, ${i})">×</span>
         </div>
       `).join("")}
     </div>
@@ -98,21 +87,15 @@ function renderGroup(index) {
 function login() {
   const phone = document.getElementById("phone").value;
   const password = document.getElementById("password").value;
-  
-  if (!phone || !password) {
-    alert("Please enter both phone and password");
-    return;
-  }
-
   const user = JSON.parse(localStorage.getItem(phone));
-  
+
   if (user && user.password === password) {
     currentUser = user;
     groups = user.groups || [];
-    initSocket();
+    initSocketConnection();
     renderDashboard();
   } else {
-    alert("Invalid login credentials");
+    alert("Invalid credentials");
   }
 }
 
@@ -123,23 +106,23 @@ function signup() {
   const confirm = document.getElementById("confirmPassword").value;
 
   if (!name || !phone || !password || !confirm) {
-    alert("Please fill all fields");
+    alert("Please fill in all fields");
     return;
   }
 
   if (password !== confirm) {
-    alert("Passwords don't match");
+    alert("Passwords do not match");
     return;
   }
 
   if (localStorage.getItem(phone)) {
-    alert("Phone number already registered");
+    alert("Account with this phone already exists");
     return;
   }
 
   const user = { name, phone, password, groups: [] };
   localStorage.setItem(phone, JSON.stringify(user));
-  alert("Account created! Please login");
+  alert("Account created");
   renderLogin();
 }
 
@@ -154,85 +137,60 @@ function logout() {
 
 function createGroup() {
   const name = prompt("Enter group name:");
-  if (!name || name.trim() === "") {
-    alert("Group name required");
-    return;
+  if (name && name.trim() !== "") {
+    groups.push({ 
+      name: name.trim(), 
+      members: [{ 
+        name: currentUser.name, 
+        phone: currentUser.phone 
+      }] 
+    });
+    saveGroups();
+    renderDashboard();
   }
+}
 
-  if (groups.some(g => g.name === name.trim())) {
-    alert("Group name already exists");
-    return;
-  }
-
-  groups.push({
-    name: name.trim(),
-    members: [{
-      name: currentUser.name,
-      phone: currentUser.phone,
-      isAdmin: true
-    }]
-  });
-
-  saveGroups();
-  renderDashboard();
+function openGroup(index) {
+  renderGroup(index);
 }
 
 function addMember(groupIndex) {
-  const name = prompt("Member name:");
-  if (!name) return;
+  const name = prompt("Enter member's name:");
+  const phone = prompt("Enter member's phone number:");
 
-  const phone = prompt("Member phone number:");
-  if (!phone || !/^\d{10,15}$/.test(phone)) {
-    alert("Invalid phone number");
-    return;
-  }
-
-  const group = groups[groupIndex];
-  if (group.members.some(m => m.phone === phone)) {
-    alert("Member already in group");
-    return;
-  }
-
-  group.members.push({ name, phone, isAdmin: false });
-  saveGroups();
-  renderGroup(groupIndex);
-}
-
-function removeMember(groupIndex, memberIndex) {
-  const group = groups[groupIndex];
-  if (group.members.length <= 1) {
-    alert("Can't remove last member");
-    return;
-  }
-
-  if (confirm("Remove this member?")) {
-    group.members.splice(memberIndex, 1);
+  if (name && phone) {
+    groups[groupIndex].members.push({ name, phone });
     saveGroups();
     renderGroup(groupIndex);
   }
 }
 
-function editGroup(groupIndex) {
-  const newName = prompt("New group name:", groups[groupIndex].name);
-  if (!newName || newName.trim() === "") return;
-
-  const trimmedName = newName.trim();
-  if (groups.some((g, i) => g.name === trimmedName && i !== groupIndex)) {
-    alert("Name already taken");
-    return;
+function removeMember(groupIndex, memberIndex) {
+  const group = groups[groupIndex];
+  if (group.members.length > 1) {
+    group.members.splice(memberIndex, 1);
+    saveGroups();
+    renderGroup(groupIndex);
+  } else {
+    alert("Cannot remove the last member from a group.");
   }
+}
 
-  groups[groupIndex].name = trimmedName;
-  saveGroups();
-  renderDashboard();
+function editGroup(groupIndex) {
+  const newName = prompt("Enter new group name:", groups[groupIndex].name);
+  if (newName && newName.trim() !== "") {
+    groups[groupIndex].name = newName.trim();
+    saveGroups();
+    renderDashboard();
+  }
 }
 
 function removeGroup(groupIndex) {
-  if (!confirm("Delete this group permanently?")) return;
-  
-  groups.splice(groupIndex, 1);
-  saveGroups();
-  renderDashboard();
+  if (confirm(`Are you sure you want to delete the group "${groups[groupIndex].name}"?`)) {
+    groups.splice(groupIndex, 1);
+    saveGroups();
+    renderDashboard();
+  }
 }
 
 function saveGroups() {
@@ -244,30 +202,38 @@ function saveGroups() {
 
 function buzzAll(groupIndex) {
   const group = groups[groupIndex];
-  if (!group || group.members.length === 0) {
-    alert("No members to buzz");
-    return;
+  if (group.members.length > 0) {
+    // Play local buzz sound
+    playBuzzSound();
+    
+    // Send buzz to server
+    socket.emit("buzz", { 
+      groupId: group.name,
+      sender: currentUser.phone 
+    });
+  } else {
+    alert("Cannot buzz an empty group.");
   }
-
-  playBuzzSound();
-  socket.emit("buzz", { 
-    groupId: group.name,
-    sender: currentUser.phone 
-  });
 }
 
 function playBuzzSound() {
-  const audio = new Audio('buzz-sound.mp3'); // Add your buzz sound file
-  audio.volume = 0.5;
-  audio.play().catch(e => {
-    console.log("Audio play failed, trying again...");
-    audio.play().catch(e => console.error("Couldn't play buzz sound", e));
-  });
+  const audio = document.getElementById("buzz-audio");
+  if (audio) {
+    audio.currentTime = 0;
+    audio.play().catch(err => {
+      console.log("Buzz sound error:", err);
+      // Fallback for autoplay restrictions
+      audio.muted = true;
+      audio.play().then(() => {
+        audio.muted = false;
+      }).catch(e => console.log("Final buzz attempt failed:", e));
+    });
+  }
 }
 
 // ====================== SOCKET HANDLERS ====================== //
 
-function initSocket() {
+function initSocketConnection() {
   socket.on("connect", () => {
     console.log("Connected to server");
   });
@@ -275,28 +241,33 @@ function initSocket() {
   socket.on("buzz", (data) => {
     if (data.sender !== currentUser.phone) {
       playBuzzSound();
-      showNotification(`${data.sender} buzzed the group!`);
+      showBuzzNotification(data.sender);
     }
   });
 }
 
-function showNotification(message) {
-  const notif = document.createElement('div');
-  notif.className = 'notification';
-  notif.textContent = message;
-  document.body.appendChild(notif);
-  setTimeout(() => notif.remove(), 3000);
+function showBuzzNotification(senderPhone) {
+  const notification = document.createElement('div');
+  notification.className = 'buzz-notification';
+  notification.textContent = `${senderPhone} buzzed the group!`;
+  document.body.appendChild(notification);
+  
+  setTimeout(() => {
+    notification.remove();
+  }, 3000);
 }
 
 // ====================== INITIALIZATION ====================== //
 
-// Handle first user interaction for audio
+// Initialize audio on first interaction
 document.addEventListener('click', () => {
-  const audio = new Audio();
-  audio.muted = true;
-  audio.play().then(() => {
-    audio.muted = false;
-  }).catch(e => console.log("Audio init:", e));
+  const audio = document.getElementById("buzz-audio");
+  if (audio) {
+    audio.play().then(() => {
+      audio.pause();
+      audio.currentTime = 0;
+    }).catch(e => console.log("Audio init error:", e));
+  }
 }, { once: true });
 
 // Start the app
