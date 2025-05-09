@@ -1,9 +1,9 @@
 const app = document.getElementById("app");
-
 let currentUser = null;
 let groups = [];
+const socket = io('https://buzu-production-d070.up.railway.app/#'); // Railway backend URL
 
-const socket = io('https://buzu-production-d070.up.railway.app/#'); // replace with your actual Railway backend URL
+// ====================== CORE APP FUNCTIONS ====================== //
 
 // Render Login Screen
 function renderLogin() {
@@ -66,7 +66,7 @@ function renderDashboard() {
 // Render Individual Group View
 function renderGroup(index) {
   const group = groups[index];
-  socket.emit('joinGroup', group.name); // Join Socket.IO room
+  socket.emit('joinGroup', { groupId: group.name, phone: currentUser.phone });
 
   app.innerHTML = `
     <div class="banner">
@@ -84,7 +84,8 @@ function renderGroup(index) {
   `;
 }
 
-// Handle Login
+// ====================== AUTH FUNCTIONS ====================== //
+
 function login() {
   const phone = document.getElementById("phone").value;
   const password = document.getElementById("password").value;
@@ -93,13 +94,13 @@ function login() {
   if (user && user.password === password) {
     currentUser = user;
     groups = user.groups || [];
+    initSocketConnection();
     renderDashboard();
   } else {
     alert("Invalid credentials");
   }
 }
 
-// Handle Signup
 function signup() {
   const name = document.getElementById("name").value;
   const phone = document.getElementById("phone").value;
@@ -127,31 +128,32 @@ function signup() {
   renderLogin();
 }
 
-// Handle Logout
 function logout() {
+  socket.disconnect();
   currentUser = null;
   groups = [];
   renderLogin();
 }
 
-// Create a New Group
+// ====================== GROUP MANAGEMENT ====================== //
+
 function createGroup() {
   const name = prompt("Enter group name:");
   if (name && name.trim() !== "") {
-    groups.push({ name: name.trim(), members: [] });
+    const newGroup = { 
+      id: Date.now().toString(),
+      name: name.trim(), 
+      members: [{ 
+        name: currentUser.name, 
+        phone: currentUser.phone 
+      }] 
+    };
+    groups.push(newGroup);
     saveGroups();
     renderDashboard();
-  } else {
-    alert("Group name cannot be empty.");
   }
 }
 
-// Open a Group
-function openGroup(index) {
-  renderGroup(index);
-}
-
-// Add a Member to a Group
 function addMember(groupIndex) {
   const name = prompt("Enter member's name:");
   const phone = prompt("Enter member's phone number:");
@@ -160,12 +162,9 @@ function addMember(groupIndex) {
     groups[groupIndex].members.push({ name, phone });
     saveGroups();
     renderGroup(groupIndex);
-  } else {
-    alert("Both name and phone are required to add a member.");
   }
 }
 
-// Remove a Member from a Group
 function removeMember(groupIndex, memberIndex) {
   const group = groups[groupIndex];
   if (group.members.length > 1) {
@@ -177,46 +176,49 @@ function removeMember(groupIndex, memberIndex) {
   }
 }
 
-// Edit Group Name
 function editGroup(groupIndex) {
   const newName = prompt("Enter new group name:", groups[groupIndex].name);
   if (newName && newName.trim() !== "") {
     groups[groupIndex].name = newName.trim();
     saveGroups();
     renderDashboard();
-  } else {
-    alert("Group name cannot be empty.");
   }
 }
 
-// Remove a Group
 function removeGroup(groupIndex) {
-  if (confirm(`Are you sure you want to delete the group "${groups[groupIndex].name}"?`)) {
+  if (confirm(`Delete group "${groups[groupIndex].name}"?`)) {
     groups.splice(groupIndex, 1);
     saveGroups();
     renderDashboard();
   }
 }
 
-// ====================== BUZZ SYSTEM ====================== //
-const buzzAudio = document.getElementById('buzz-audio');
-
-// 1. Audio Initialization (Preload + Unlock)
-function initAudio() {
-  if (buzzAudio) {
-    buzzAudio.volume = 1.0;
-    buzzAudio.load(); // Force preload
-    
-    // One-time unlock
-    const unlockAudio = () => {
-      buzzAudio.muted = false;
-      document.removeEventListener('click', unlockAudio);
-    };
-    document.addEventListener('click', unlockAudio, { once: true });
+function saveGroups() {
+  if (currentUser) {
+    currentUser.groups = groups;
+    localStorage.setItem(currentUser.phone, JSON.stringify(currentUser));
   }
 }
 
-// 2. Play Buzz Locally (with error handling)
+// ====================== BUZZ SYSTEM ====================== //
+
+const buzzAudio = document.getElementById('buzz-audio');
+
+function initAudio() {
+  if (buzzAudio) {
+    buzzAudio.volume = 1.0;
+    buzzAudio.load();
+    
+    const unlockAudio = () => {
+      buzzAudio.muted = false;
+      document.removeEventListener('click', unlockAudio);
+      document.removeEventListener('touchstart', unlockAudio);
+    };
+    document.addEventListener('click', unlockAudio, { once: true });
+    document.addEventListener('touchstart', unlockAudio, { once: true });
+  }
+}
+
 function playBuzz() {
   if (!buzzAudio) return;
   
@@ -228,33 +230,48 @@ function playBuzz() {
   });
 }
 
-// 3. Group Buzzing System
 function buzzAll(groupIndex) {
   const group = groups[groupIndex];
-  
   if (!group || group.members.length === 0) {
     alert("Cannot buzz an empty group.");
     return;
   }
 
-  // Play local feedback immediately
-  playBuzz();
-  
-  // Send to server (broadcast to group)
+  playBuzz(); // Local feedback
   socket.emit("buzz-group", { 
     groupId: group.id,
     sender: currentUser.phone 
   });
 }
 
-// 4. Handle Incoming Buzzes
-socket.on("buzz-group", (data) => {
-  if (data.sender !== currentUser.phone) { // Don't play our own buzz twice
-    playBuzz();
-    showBuzzNotification(data.sender); // Optional UI feedback
-  }
-});
+function showBuzzNotification(sender) {
+  const notification = document.createElement('div');
+  notification.className = 'buzz-notification';
+  notification.textContent = `${sender} buzzed the group!`;
+  document.body.appendChild(notification);
+  setTimeout(() => notification.remove(), 2000);
+}
 
-// 5. Initialize on load
+// ====================== SOCKET HANDLERS ====================== //
+
+function initSocketConnection() {
+  socket.on("connect", () => {
+    console.log("Socket connected");
+  });
+
+  socket.on("buzz-group", (data) => {
+    if (data.sender !== currentUser.phone) {
+      playBuzz();
+      showBuzzNotification(data.sender);
+    }
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Socket disconnected");
+  });
+}
+
+// ====================== INITIALIZATION ====================== //
+
 initAudio();
 renderLogin();
