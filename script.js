@@ -211,7 +211,7 @@ function removeGroup(groupIndex) {
 function buzzAll(groupIndex) {
   const group = groups[groupIndex];
   socket.emit("buzz", { group: group.name });
-  console.log(`Buzz sent to all members of "${group.name}"`);
+  alert(`Buzz sent to all members of "${group.name}"`);
 }
 
 // Save Group Changes to localStorage
