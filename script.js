@@ -232,30 +232,26 @@ function buzzAll(groupIndex) {
     return;
   }
 
-  // 1. Show confirmation the buzz was sent
-  alert(`Buzz sent to ${group.name}!`);
-  
-  // 2. Play local sound
-  playBuzzSound();
-  
-  // 3. Send to server
-  socket.emit("buzz", { 
-    groupId: group.name,
-    sender: currentUser.phone,
-    senderName: currentUser.name
-  });
-}
-
-function playBuzzSound() {
   try {
+    // 1. Send to server first
+    socket.emit("buzz", { 
+      groupId: group.name,
+      sender: currentUser.phone,
+      senderName: currentUser.name
+    });
+    
+    // 2. Play local sound
     buzzAudio.currentTime = 0;
     buzzAudio.play().catch(e => {
-      console.log("Buzz sound failed, showing alert instead");
-      alert("BUZZ! BUZZ! BUZZ!");
+      console.log("Buzz sound failed to play", e);
     });
+    
+    // 3. Show single confirmation
+    alert(`Buzz sent to ${group.name}!`);
+    
   } catch (e) {
     console.error("Buzz error:", e);
-    alert("BUZZ! BUZZ! BUZZ!");
+    alert("Failed to send buzz");
   }
 }
 
