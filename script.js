@@ -2,6 +2,7 @@ const app = document.getElementById("app");
 let currentUser = null;
 let groups = [];
 const socket = io('https://buzu-production-d070.up.railway.app/#'); // Railway backend URL
+let buzzAudio; // Declare audio variable (only once)
 
 // ====================== RENDER FUNCTIONS ====================== //
 
@@ -92,11 +93,9 @@ function login() {
   if (user && user.password === password) {
     currentUser = user;
     groups = user.groups || [];
-    initSocketConnection();  // Initialize socket connection
-    initAudio();            // Initialize audio system
+    initSocketConnection();
+    initAudio();
     renderDashboard();
-    
-    // Store login state
     localStorage.setItem('currentUser', JSON.stringify(user));
   } else {
     alert("Invalid credentials");
@@ -134,7 +133,7 @@ function logout() {
   socket.disconnect();
   currentUser = null;
   groups = [];
-  localStorage.removeItem('currentUser'); // Clear login state
+  localStorage.removeItem('currentUser');
   renderLogin();
 }
 
@@ -205,80 +204,54 @@ function saveGroups() {
 
 // ====================== BUZZ SYSTEM ====================== //
 
-let buzzAudio;
-
-// Initialize audio on first user interaction
 function initAudio() {
-  buzzAudio = document.getElementById('buzz-audio');
-  buzzAudio.volume = 0.5; // Set comfortable volume
-  
-  // Play silent audio to unlock audio permissions
-  document.addEventListener('click', function handleFirstClick() {
-    const silentAudio = new Audio();
-    silentAudio.muted = true;
-    silentAudio.play().then(() => {
-      console.log("Audio unlocked");
-    }).catch(e => console.log("Audio init error:", e));
+  // Initialize audio only once
+  if (!buzzAudio) {
+    buzzAudio = new Audio('buzz.mp3'); // Using your actual file name
+    buzzAudio.preload = 'auto';
+    buzzAudio.volume = 0.5;
     
-    // Remove this listener after first click
-    document.removeEventListener('click', handleFirstClick);
-  }, { once: true });
+    // Unlock audio on first click
+    document.addEventListener('click', function handleFirstClick() {
+      buzzAudio.play().then(() => buzzAudio.pause())
+        .catch(e => console.log("Audio init error:", e));
+      document.removeEventListener('click', handleFirstClick);
+    }, { once: true });
+  }
 }
 
-// 1. Add this at the top of your file (global scope)
-const buzzAudio = new Audio('buzz-sound.mp3');
-buzzAudio.preload = 'auto';
+function playBuzzSound() {
+  if (!buzzAudio) return;
+  
+  try {
+    buzzAudio.currentTime = 0;
+    buzzAudio.play().catch(e => {
+      console.log("Sound blocked, trying vibration");
+      if (navigator.vibrate) navigator.vibrate(200);
+    });
+  } catch (e) {
+    console.error("Sound error:", e);
+  }
+}
 
 function buzzAll(groupIndex) {
-  try {
-    const group = groups[groupIndex];
-    if (!group || group.members.length === 0) {
-      alert("Cannot buzz - group has no members!");
-      return;
-    }
-
-    // 1. Play sound FIRST for immediate feedback
-    playBuzzSound();
-
-    // 2. Send to server
-    socket.emit("buzz", { 
-      groupId: group.name,
-      sender: currentUser.phone,
-      senderName: currentUser.name
-    });
-
-    // 3. Show confirmation
-    alert(`Buzz sent to ${group.name}!`);
-
-  } catch (e) {
-    console.error("Buzz failed completely:", e);
-    alert("Failed to send buzz");
+  const group = groups[groupIndex];
+  if (!group || group.members.length === 0) {
+    alert("Cannot buzz - group has no members!");
+    return;
   }
-}
 
-// New helper function for reliable sound playback
-function playBuzzSound() {
-  try {
-    // Solution for browser autoplay policies
-    const audioPromise = buzzAudio.play();
-    
-    if (audioPromise !== undefined) {
-      audioPromise
-        .then(_ => console.log("Buzz sound played"))
-        .catch(e => {
-          console.log("Auto-play prevented, trying fallback:", e);
-          // Fallback 1: Try unmuting and playing again
-          buzzAudio.muted = false;
-          buzzAudio.play().catch(e => {
-            // Fallback 2: Create new audio instance
-            new Audio('buzz-sound.mp3').play()
-              .catch(e => console.log("Final fallback failed:", e));
-          });
-        });
-    }
-  } catch (e) {
-    console.error("Sound system error:", e);
-  }
+  // Play sound first
+  playBuzzSound();
+
+  // Then send to server
+  socket.emit("buzz", { 
+    groupId: group.name,
+    sender: currentUser.phone,
+    senderName: currentUser.name
+  });
+
+  alert(`Buzz sent to ${group.name}!`);
 }
 
 // ====================== SOCKET HANDLERS ====================== //
@@ -289,12 +262,8 @@ function initSocketConnection() {
   });
 
   socket.on("buzz", (data) => {
-    // Only show if buzz came from someone else
     if (data.sender !== currentUser.phone) {
-      // Show who buzzed you
       alert(`${data.senderName} buzzed the group!`);
-      
-      // Try to play sound
       playBuzzSound();
     }
   });
@@ -306,17 +275,7 @@ function initSocketConnection() {
 
 // ====================== INITIALIZATION ====================== //
 
-// Initialize audio system (called once when app starts)
-function initAudio() {
-  const audio = document.getElementById('buzz-audio');
-  if (audio) {
-    audio.volume = 0.5;
-  }
-}
-
-// Start the app
 document.addEventListener('DOMContentLoaded', function() {
-  // Check for existing session
   const savedUser = localStorage.getItem('currentUser');
   if (savedUser) {
     currentUser = JSON.parse(savedUser);
