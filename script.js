@@ -225,6 +225,10 @@ function initAudio() {
   }, { once: true });
 }
 
+// 1. Add this at the top of your file (global scope)
+const buzzAudio = new Audio('buzz-sound.mp3');
+buzzAudio.preload = 'auto';
+
 function buzzAll(groupIndex) {
   try {
     const group = groups[groupIndex];
@@ -233,13 +237,13 @@ function buzzAll(groupIndex) {
       return;
     }
 
-    // 1. Play sound FIRST (so user gets immediate feedback)
-    playBuzzSound(); 
+    // 1. Play sound FIRST for immediate feedback
+    playBuzzSound();
 
     // 2. Send to server
-    socket.emit("buzz", {
+    socket.emit("buzz", { 
       groupId: group.name,
-      sender: currentUser.phone, 
+      sender: currentUser.phone,
       senderName: currentUser.name
     });
 
@@ -247,26 +251,33 @@ function buzzAll(groupIndex) {
     alert(`Buzz sent to ${group.name}!`);
 
   } catch (e) {
-    console.error("Error:", e);
+    console.error("Buzz failed completely:", e);
     alert("Failed to send buzz");
   }
 }
 
-// Sound handling (must be defined globally)
-const buzzAudio = new Audio('buzz-sound.mp3'); // <-- IMPORTANT: Verify path
-
+// New helper function for reliable sound playback
 function playBuzzSound() {
   try {
-    buzzAudio.currentTime = 0; // Rewind if already played
-    buzzAudio.play()
-      .then(() => console.log("Buzz sound played"))
-      .catch(e => {
-        console.error("Sound blocked:", e);
-        // Fallback: Create new audio instance if blocked
-        new Audio('buzz-sound.mp3').play().catch(e => console.log("Fallback failed"));
-      });
+    // Solution for browser autoplay policies
+    const audioPromise = buzzAudio.play();
+    
+    if (audioPromise !== undefined) {
+      audioPromise
+        .then(_ => console.log("Buzz sound played"))
+        .catch(e => {
+          console.log("Auto-play prevented, trying fallback:", e);
+          // Fallback 1: Try unmuting and playing again
+          buzzAudio.muted = false;
+          buzzAudio.play().catch(e => {
+            // Fallback 2: Create new audio instance
+            new Audio('buzz-sound.mp3').play()
+              .catch(e => console.log("Final fallback failed:", e));
+          });
+        });
+    }
   } catch (e) {
-    console.error("Sound error:", e);
+    console.error("Sound system error:", e);
   }
 }
 
