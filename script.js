@@ -171,6 +171,27 @@ function removeMember(groupIndex, memberIndex) {
   }
 }
 
+// Edit Group Name
+function editGroup(groupIndex) {
+  const newName = prompt("Enter new group name:", groups[groupIndex].name);
+  if (newName && newName.trim() !== "") {
+    groups[groupIndex].name = newName.trim();
+    saveGroups();
+    renderGroup(groupIndex);  // Re-render the group after editing
+  } else {
+    alert("Group name cannot be empty.");
+  }
+}
+
+// Remove a Group
+function removeGroup(groupIndex) {
+  if (confirm(`Are you sure you want to delete the group "${groups[groupIndex].name}"?`)) {
+    groups.splice(groupIndex, 1);  // Remove the group from the array
+    saveGroups();  // Save the updated groups list
+    renderDashboard();  // Re-render the dashboard view after removal
+  }
+}
+
 // Buzz All Members
 function buzzAll(groupIndex) {
   const group = groups[groupIndex];
