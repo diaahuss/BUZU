@@ -132,41 +132,45 @@ function logout() {
 function createGroup() {
   const name = prompt("Enter group name:");
   if (name) {
-    groups.push({ name, members: [] });
+    groups.push({ name: name.trim(), members: [] });
     saveGroups();
-    renderDashboard();
+    renderGroups();
   }
 }
 
 // Open a Group
-function openGroup(index) {
-  renderGroup(index);
+function openGroup(groupIndex) {
+  renderGroup(groupIndex);
 }
 
-// Render Group View
+// Render a Group View
 function renderGroup(groupIndex) {
   const group = groups[groupIndex];
   const appDiv = document.getElementById("app");
 
   appDiv.innerHTML = `
-    <h2>Group: ${group.name}</h2>
-    <button onclick="addMember(${groupIndex})">Add Member</button>
-    <button onclick="editGroup(${groupIndex})">Edit Group Name</button>
-    <button onclick="removeGroup(${groupIndex})">Remove Group</button>
-    <button onclick="buzzAll(${groupIndex})">Buzz All</button>
-    <ul>
-      ${group.members
-        .map(
-          (member, memberIndex) => `
-        <li>
-          ${member.name} (${member.phone})
-          <button onclick="removeMember(${groupIndex}, ${memberIndex})">Remove</button>
-        </li>
-      `
-        )
-        .join("")}
-    </ul>
-    <button onclick="renderGroups()">Back to My Groups</button>
+    <div style="background: lightblue; padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+      <button onclick="renderGroups()">⬅️</button>
+      <h2 style="margin: 0;">
+        <span id="group-name">${group.name}</span>
+        <button onclick="editGroup(${groupIndex})" style="font-size: 16px;">✏️</button>
+      </h2>
+      <button onclick="removeGroup(${groupIndex})" style="color: red;">🗑️</button>
+    </div>
+
+    <div style="padding: 10px;">
+      <button onclick="addMember(${groupIndex})">➕ Add Member</button>
+      <button onclick="buzzAll(${groupIndex})">🔔 Buzz All</button>
+
+      <ul style="list-style: none; padding: 0; margin-top: 10px;">
+        ${group.members.map((member, i) => `
+          <li style="margin-bottom: 8px;">
+            <strong>${member.name}</strong> (${member.phone})
+            <button onclick="removeMember(${groupIndex}, ${i})" style="margin-left: 10px; color: red;">❌</button>
+          </li>
+        `).join("")}
+      </ul>
+    </div>
   `;
 }
 
@@ -174,9 +178,8 @@ function renderGroup(groupIndex) {
 function addMember(groupIndex) {
   const name = prompt("Member name:");
   const phone = prompt("Member phone:");
-
   if (name && phone) {
-    groups[groupIndex].members.push({ name, phone });
+    groups[groupIndex].members.push({ name: name.trim(), phone: phone.trim() });
     saveGroups();
     renderGroup(groupIndex);
   }
@@ -191,8 +194,9 @@ function removeMember(groupIndex, memberIndex) {
 
 // Edit Group Name
 function editGroup(groupIndex) {
-  const newName = prompt("Enter new group name:", groups[groupIndex].name);
-  if (newName && newName.trim() !== "") {
+  const currentName = groups[groupIndex].name;
+  const newName = prompt("Enter new group name:", currentName);
+  if (newName && newName.trim() !== "" && newName !== currentName) {
     groups[groupIndex].name = newName.trim();
     saveGroups();
     renderGroup(groupIndex);
@@ -212,11 +216,10 @@ function removeGroup(groupIndex) {
 function buzzAll(groupIndex) {
   const group = groups[groupIndex];
   socket.emit("buzz", { group: group.name });
-
   console.log(`Buzz sent to all members of "${group.name}"`);
 }
 
-// Save Group Changes to localStorage
+// Save Groups to localStorage
 function saveGroups() {
   currentUser.groups = groups;
   localStorage.setItem(currentUser.phone, JSON.stringify(currentUser));
