@@ -50,9 +50,14 @@ function renderDashboard() {
     <div class="banner">Welcome, ${currentUser.name}</div>
     <button onclick="createGroup()">Create Group</button>
     <button onclick="logout()">Logout</button>
-    ${groups.map((group, i) => `
-      <div class="group-box" onclick="openGroup(${i})">
-        ${group.name} <span class="arrow">→</span>
+    <h2>My Groups</h2>
+    ${groups.map((group, index) => `
+      <div class="group">
+        <div class="group-box" onclick="openGroup(${index})">
+          ${group.name} <span class="arrow">→</span>
+        </div>
+        <button onclick="event.stopPropagation(); editGroup(${index})">Edit</button>
+        <button onclick="event.stopPropagation(); removeGroup(${index})">Remove</button>
       </div>
     `).join("")}
   `;
@@ -69,10 +74,11 @@ function renderGroup(index) {
     </div>
     <button onclick="addMember(${index})">Add Member</button>
     <button onclick="buzzAll(${index})">Buzz All</button>
+    <h3>Members:</h3>
     ${group.members.map((m, i) => `
       <div class="member-item">
         ${m.name} (${m.phone})
-        <span class="remove-x" onclick="removeMember(${index}, ${i})">×</span>
+        <span class="remove-x" onclick="event.stopPropagation(); removeMember(${index}, ${i})">×</span>
       </div>
     `).join("")}
   `;
@@ -177,7 +183,7 @@ function editGroup(groupIndex) {
   if (newName && newName.trim() !== "") {
     groups[groupIndex].name = newName.trim();
     saveGroups();
-    renderDashboard();  // Re-render the dashboard after editing
+    renderDashboard();
   } else {
     alert("Group name cannot be empty.");
   }
@@ -186,9 +192,9 @@ function editGroup(groupIndex) {
 // Remove a Group
 function removeGroup(groupIndex) {
   if (confirm(`Are you sure you want to delete the group "${groups[groupIndex].name}"?`)) {
-    groups.splice(groupIndex, 1);  // Remove the group from the array
-    saveGroups();  // Save the updated groups list
-    renderDashboard();  // Re-render the dashboard view after removal
+    groups.splice(groupIndex, 1);
+    saveGroups();
+    renderDashboard();
   }
 }
 
@@ -207,50 +213,6 @@ function buzzAll(groupIndex) {
 function saveGroups() {
   currentUser.groups = groups;
   localStorage.setItem(currentUser.phone, JSON.stringify(currentUser));
-}
-
-// Render Groups on Dashboard
-function renderDashboard() {
-  const appDiv = document.getElementById("app");
-  appDiv.innerHTML = "<h2>My Groups</h2>";
-  
-  groups.forEach((group, index) => {
-    appDiv.innerHTML += `
-      <div class="group">
-        <h3>${group.name}</h3>
-        <button onclick="openGroup(${index})">Open Group</button>
-        <button onclick="editGroup(${index})">Edit Group</button>
-        <button onclick="removeGroup(${index})">Remove Group</button>
-        <button onclick="buzzAll(${index})">Buzz All</button>
-      </div>
-    `;
-  });
-}
-
-// Render Group View
-function renderGroup(groupIndex) {
-  const group = groups[groupIndex];
-  const appDiv = document.getElementById("app");
-
-  appDiv.innerHTML = `
-    <h2>${group.name}</h2>
-    <button onclick="renderDashboard()">Back to Groups</button>
-    <button onclick="addMember(${groupIndex})">Add Member</button>
-    <button onclick="buzzAll(${groupIndex})">Buzz All</button>
-    <h3>Members:</h3>
-    <ul>
-      ${group.members
-        .map(
-          (member, memberIndex) => `
-        <li>
-          ${member.name} (${member.phone})
-          <button onclick="removeMember(${groupIndex}, ${memberIndex})">Remove</button>
-        </li>
-      `
-        )
-        .join("")}
-    </ul>
-  `;
 }
 
 // Unlock audio on first user interaction
