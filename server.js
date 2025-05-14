@@ -22,36 +22,45 @@ io.on('connection', (socket) => {
     if (!userGroups[groupName]) {
       userGroups[groupName] = [];
     }
-    userGroups[groupName].push(socket.id); // Add socket ID to the group's list
-    socket.join(groupName); // NEW: Join Socket.IO room
+    userGroups[groupName].push(socket.id);
+    socket.join(groupName);
   });
 
-  // When a buzz is triggered for a specific group 
+  // Fixed buzz handler - changed 'group' to 'groupId'
   socket.on('buzz', (data) => {
-    if (!data || !data.group) {
+    if (!data || !data.groupId) {  // Changed from 'group' to 'groupId'
       console.error('Invalid buzz data:', data);
       return;
     }
 
-    const { group, sender, senderName } = data;
-    console.log(`Buzz from ${senderName} to group: ${group}`);
+    const { groupId, sender, senderName } = data;  // Changed variable name
+    console.log(`Buzz from ${senderName} to group: ${groupId}`);
     
     // Send to all in group except sender
-    socket.to(group).emit('buzz', { 
-      group,
+    socket.to(groupId).emit('buzz', {  // Changed from 'group' to 'groupId'
+      groupId,  // Changed from 'group'
       sender, 
       senderName,
       timestamp: new Date().toISOString() 
     });
   });
 
-  // Handle disconnect event 
+  // Handle disconnect event
   socket.on('disconnect', () => {
     console.log('A user disconnected');
     // Remove the user from all groups they were part of
     for (let group in userGroups) {
       userGroups[group] = userGroups[group].filter(socketId => socketId !== socket.id);
     }
+  });
+});
+
+// Add graceful shutdown handler
+process.on('SIGTERM', () => {
+  console.log('Received SIGTERM. Closing server...');
+  server.close(() => {
+    console.log('Server closed');
+    process.exit(0);
   });
 });
 
