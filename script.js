@@ -205,13 +205,12 @@ function saveGroups() {
 // ====================== BUZZ SYSTEM ====================== //
 
 function initAudio() {
-  // Initialize audio only once
   if (!buzzAudio) {
-    buzzAudio = new Audio('buzz.mp3'); // Using your actual file name
+    buzzAudio = new Audio('buzz.mp3');
     buzzAudio.preload = 'auto';
     buzzAudio.volume = 0.5;
     
-    // Unlock audio on first click
+    // First interaction unlocks audio
     document.addEventListener('click', function handleFirstClick() {
       buzzAudio.play().then(() => buzzAudio.pause())
         .catch(e => console.log("Audio init error:", e));
@@ -226,7 +225,7 @@ function playBuzzSound() {
   try {
     buzzAudio.currentTime = 0;
     buzzAudio.play().catch(e => {
-      console.log("Sound blocked, trying vibration");
+      console.log("Sound blocked:", e);
       if (navigator.vibrate) navigator.vibrate(200);
     });
   } catch (e) {
@@ -251,7 +250,7 @@ function buzzAll(groupIndex) {
     senderName: currentUser.name
   });
 
-  alert(`Buzz sent to ${group.name}!`);
+  console.log(`Buzz sent to ${group.name}`);
 }
 
 // ====================== SOCKET HANDLERS ====================== //
@@ -262,6 +261,7 @@ function initSocketConnection() {
   });
 
   socket.on("buzz", (data) => {
+    console.log("Buzz received:", data);
     if (data.sender !== currentUser.phone) {
       alert(`${data.senderName} buzzed the group!`);
       playBuzzSound();
