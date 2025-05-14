@@ -23,21 +23,29 @@ io.on('connection', (socket) => {
       userGroups[groupName] = [];
     }
     userGroups[groupName].push(socket.id); // Add socket ID to the group's list
+    socket.join(groupName); // NEW: Join Socket.IO room
   });
 
-  // When a buzz is triggered for a specific group
+  // When a buzz is triggered for a specific group 
   socket.on('buzz', (data) => {
-    const { group } = data;
-    console.log(`Buzz sent to group: ${group}`);
-    if (userGroups[group]) {
-      // Emit the buzz only to the group members
-      userGroups[group].forEach(socketId => {
-        io.to(socketId).emit('buzz'); // Send the buzz to each member in the group
-      });
+    if (!data || !data.group) {
+      console.error('Invalid buzz data:', data);
+      return;
     }
+
+    const { group, sender, senderName } = data;
+    console.log(`Buzz from ${senderName} to group: ${group}`);
+    
+    // Send to all in group except sender
+    socket.to(group).emit('buzz', { 
+      group,
+      sender, 
+      senderName,
+      timestamp: new Date().toISOString() 
+    });
   });
 
-  // Handle disconnect event
+  // Handle disconnect event 
   socket.on('disconnect', () => {
     console.log('A user disconnected');
     // Remove the user from all groups they were part of
