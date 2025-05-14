@@ -3,118 +3,135 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 
-// ====================== SERVER SETUP ====================== //
+// ====================== INITIALIZATION ====================== //
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
-  pingTimeout: 60000, // 60 seconds
-  pingInterval: 25000 // 25 seconds
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  cors: {
+    origin: "*", // Restrict in production
+    methods: ["GET", "POST"]
+  }
 });
 
-app.use(express.static(path.join(__dirname)));
+// ====================== CONFIGURATION ====================== //
+const PORT = process.env.PORT || 8080;
+const ENV = process.env.NODE_ENV || 'development';
+const SHUTDOWN_TIMEOUT = 5000;
 
 // ====================== DATA STORES ====================== //
-const userGroups = {}; // { groupName: [socketIds] }
-const userSockets = {}; // { userId: socketId } for faster lookups
+const groups = new Map();       // groupName → Set<socketId>
+const userConnections = new Map(); // userId → socketId
 
-// ====================== SOCKET HANDLERS ====================== //
-io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
+// ====================== MIDDLEWARE ====================== //
+app.use(express.static(path.join(__dirname)));
+app.use(express.json());
 
-  // ===== GROUP MANAGEMENT ===== //
+// ====================== SOCKET.IO HANDLERS ====================== //
+const setupSocketHandlers = (socket) => {
+  console.log(`New connection: ${socket.id}`);
+
+  // Group Management
   socket.on('joinGroup', (groupName, userId) => {
-    if (!groupName || typeof groupName !== 'string') {
-      console.error('Invalid group name:', groupName);
-      return;
+    if (!groupName || !userId) {
+      return socket.emit('error', 'Invalid group/user ID');
     }
 
-    console.log(`User ${userId} joined group: ${groupName}`);
-    
-    // Initialize group if not exists
-    if (!userGroups[groupName]) {
-      userGroups[groupName] = new Set();
+    if (!groups.has(groupName)) {
+      groups.set(groupName, new Set());
     }
-    
-    // Track user's socket and group membership
-    userGroups[groupName].add(socket.id);
-    userSockets[userId] = socket.id;
+
+    groups.get(groupName).add(socket.id);
+    userConnections.set(userId, socket.id);
     socket.join(groupName);
+    
+    console.log(`${userId} joined ${groupName}`);
   });
 
-  // ===== BUZZ HANDLER ===== //
-  socket.on('buzz', (data, callback) => {
+  // Buzz Handling
+  socket.on('buzz', ({ groupId, userId, userName }, callback) => {
     try {
-      // Validate incoming data
-      if (!data || typeof data !== 'object') {
-        throw new Error('Invalid data format');
-      }
-
-      const { groupId, sender, senderName } = data;
-      if (!groupId || !sender || !senderName) {
+      if (!groupId || !userId || !userName) {
         throw new Error('Missing required fields');
       }
 
-      console.log(`Valid buzz from ${senderName} to ${groupId}`);
+      const timestamp = new Date().toISOString();
+      io.to(groupId).emit('buzz', { groupId, userId, userName, timestamp });
       
-      // Broadcast to group
-      socket.to(groupId).emit('buzz', {
-        groupId,
-        sender,
-        senderName,
-        timestamp: new Date().toISOString()
-      });
-
-      // Send acknowledgement
-      callback({ status: 'success' });
-
+      callback({ status: 'success', timestamp });
     } catch (error) {
-      console.error('Buzz error:', error.message);
+      console.error('Buzz failed:', error.message);
       callback({ status: 'error', message: error.message });
     }
   });
 
-  // ===== DISCONNECTION HANDLER ===== //
+  // Cleanup on Disconnect
   socket.on('disconnect', () => {
-    console.log(`User disconnected: ${socket.id}`);
+    console.log(`Disconnected: ${socket.id}`);
     
-    // Clean up group memberships
-    for (const [groupName, members] of Object.entries(userGroups)) {
-      if (members.delete(socket.id) && members.size === 0) {
-        delete userGroups[groupName];
+    // Remove from groups
+    groups.forEach((members, groupName) => {
+      if (members.delete(socket.id) {
+        if (members.size === 0) {
+          groups.delete(groupName);
+        }
       }
-    }
+    });
     
-    // Clean up user socket mapping
-    for (const [userId, socketId] of Object.entries(userSockets)) {
+    // Remove user mapping
+    userConnections.forEach((socketId, userId) => {
       if (socketId === socket.id) {
-        delete userSockets[userId];
-        break;
+        userConnections.delete(userId);
       }
-    }
+    });
   });
-});
+};
+
+io.on('connection', setupSocketHandlers);
 
 // ====================== GRACEFUL SHUTDOWN ====================== //
-const shutdown = () => {
-  console.log('Shutting down gracefully...');
+const gracefulShutdown = () => {
+  console.log('\nStarting graceful shutdown...');
+  
+  // Disconnect all sockets
+  io.sockets.sockets.forEach(socket => {
+    socket.disconnect(true);
+  });
+
+  // Close Socket.IO
+  io.close(() => {
+    console.log('Socket.IO closed');
+  });
+
+  // Close HTTP server
   server.close(() => {
-    console.log('Server closed');
+    console.log('HTTP server closed');
     process.exit(0);
   });
 
-  // Force shutdown after 5 seconds
+  // Force exit if hanging
   setTimeout(() => {
-    console.error('Forcing shutdown...');
+    console.error('Forcing shutdown after timeout');
     process.exit(1);
-  }, 5000);
+  }, SHUTDOWN_TIMEOUT);
 };
 
-process.on('SIGTERM', shutdown);
-process.on('SIGINT', shutdown);
+process.on('SIGTERM', gracefulShutdown);
+process.on('SIGINT', gracefulShutdown);
 
 // ====================== SERVER START ====================== //
-const PORT = process.env.PORT || 8080;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`
+  ██████╗ ██╗   ██╗███████╗██╗   ██╗
+  ██╔══██╗██║   ██║╚══███╔╝██║   ██║
+  ██████╔╝██║   ██║  ███╔╝ ██║   ██║
+  ██╔══██╗██║   ██║ ███╔╝  ██║   ██║
+  ██████╔╝╚██████╔╝███████╗╚██████╔╝
+  ╚═════╝  ╚═════╝ ╚══════╝ ╚═════╝ 
+  `);
+  console.log(`BUZU Server v1.0.0`);
+  console.log(`Environment: ${ENV}`);
+  console.log(`Listening on port ${PORT}`);
+  console.log(`PID: ${process.pid}`);
 });
