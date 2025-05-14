@@ -3,66 +3,118 @@ const http = require('http');
 const socketIo = require('socket.io');
 const path = require('path');
 
+// ====================== SERVER SETUP ====================== //
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
+const io = socketIo(server, {
+  pingTimeout: 60000, // 60 seconds
+  pingInterval: 25000 // 25 seconds
+});
 
-// Serve static files from the current directory
 app.use(express.static(path.join(__dirname)));
 
-// Store connected users and their associated groups
-const userGroups = {};
+// ====================== DATA STORES ====================== //
+const userGroups = {}; // { groupName: [socketIds] }
+const userSockets = {}; // { userId: socketId } for faster lookups
 
+// ====================== SOCKET HANDLERS ====================== //
 io.on('connection', (socket) => {
-  console.log('A user connected');
+  console.log(`User connected: ${socket.id}`);
 
-  // When a user joins a group
-  socket.on('joinGroup', (groupName) => {
-    console.log(`User joined group: ${groupName}`);
-    if (!userGroups[groupName]) {
-      userGroups[groupName] = [];
-    }
-    userGroups[groupName].push(socket.id);
-    socket.join(groupName);
-  });
-
-  // Fixed buzz handler - changed 'group' to 'groupId'
-  socket.on('buzz', (data) => {
-    if (!data || !data.groupId) {  // Changed from 'group' to 'groupId'
-      console.error('Invalid buzz data:', data);
+  // ===== GROUP MANAGEMENT ===== //
+  socket.on('joinGroup', (groupName, userId) => {
+    if (!groupName || typeof groupName !== 'string') {
+      console.error('Invalid group name:', groupName);
       return;
     }
 
-    const { groupId, sender, senderName } = data;  // Changed variable name
-    console.log(`Buzz from ${senderName} to group: ${groupId}`);
+    console.log(`User ${userId} joined group: ${groupName}`);
     
-    // Send to all in group except sender
-    socket.to(groupId).emit('buzz', {  // Changed from 'group' to 'groupId'
-      groupId,  // Changed from 'group'
-      sender, 
-      senderName,
-      timestamp: new Date().toISOString() 
-    });
+    // Initialize group if not exists
+    if (!userGroups[groupName]) {
+      userGroups[groupName] = new Set();
+    }
+    
+    // Track user's socket and group membership
+    userGroups[groupName].add(socket.id);
+    userSockets[userId] = socket.id;
+    socket.join(groupName);
   });
 
-  // Handle disconnect event
+  // ===== BUZZ HANDLER ===== //
+  socket.on('buzz', (data, callback) => {
+    try {
+      // Validate incoming data
+      if (!data || typeof data !== 'object') {
+        throw new Error('Invalid data format');
+      }
+
+      const { groupId, sender, senderName } = data;
+      if (!groupId || !sender || !senderName) {
+        throw new Error('Missing required fields');
+      }
+
+      console.log(`Valid buzz from ${senderName} to ${groupId}`);
+      
+      // Broadcast to group
+      socket.to(groupId).emit('buzz', {
+        groupId,
+        sender,
+        senderName,
+        timestamp: new Date().toISOString()
+      });
+
+      // Send acknowledgement
+      callback({ status: 'success' });
+
+    } catch (error) {
+      console.error('Buzz error:', error.message);
+      callback({ status: 'error', message: error.message });
+    }
+  });
+
+  // ===== DISCONNECTION HANDLER ===== //
   socket.on('disconnect', () => {
-    console.log('A user disconnected');
-    // Remove the user from all groups they were part of
-    for (let group in userGroups) {
-      userGroups[group] = userGroups[group].filter(socketId => socketId !== socket.id);
+    console.log(`User disconnected: ${socket.id}`);
+    
+    // Clean up group memberships
+    for (const [groupName, members] of Object.entries(userGroups)) {
+      if (members.delete(socket.id) && members.size === 0) {
+        delete userGroups[groupName];
+      }
+    }
+    
+    // Clean up user socket mapping
+    for (const [userId, socketId] of Object.entries(userSockets)) {
+      if (socketId === socket.id) {
+        delete userSockets[userId];
+        break;
+      }
     }
   });
 });
 
-// Add graceful shutdown handler
-process.on('SIGTERM', () => {
-  console.log('Received SIGTERM. Closing server...');
+// ====================== GRACEFUL SHUTDOWN ====================== //
+const shutdown = () => {
+  console.log('Shutting down gracefully...');
   server.close(() => {
     console.log('Server closed');
     process.exit(0);
   });
-});
 
+  // Force shutdown after 5 seconds
+  setTimeout(() => {
+    console.error('Forcing shutdown...');
+    process.exit(1);
+  }, 5000);
+};
+
+process.on('SIGTERM', shutdown);
+process.on('SIGINT', shutdown);
+
+// ====================== SERVER START ====================== //
 const PORT = process.env.PORT || 8080;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
