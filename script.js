@@ -204,53 +204,86 @@ function saveGroups() {
 
 // ====================== BUZZ SYSTEM ====================== //
 
+let buzzAudio; // Audio instance (global scope)
+
 function initAudio() {
-  if (!buzzAudio) {
-    buzzAudio = new Audio('buzz.mp3');
-    buzzAudio.preload = 'auto';
-    buzzAudio.volume = 0.5;
-    
-    // First interaction unlocks audio
-    document.addEventListener('click', function handleFirstClick() {
-      buzzAudio.play().then(() => buzzAudio.pause())
-        .catch(e => console.log("Audio init error:", e));
-      document.removeEventListener('click', handleFirstClick);
-    }, { once: true });
-  }
+  if (buzzAudio) return;
+  
+  // Initialize audio with better error handling
+  buzzAudio = new Audio('buzz.mp3');
+  buzzAudio.preload = 'auto';
+  buzzAudio.volume = 0.6; // Slightly louder for better UX
+  
+  // Unlock audio on first interaction
+  const handleFirstInteraction = () => {
+    buzzAudio.play()
+      .then(() => {
+        buzzAudio.pause(); // Immediately pause after unlock
+        console.log("Audio system ready");
+      })
+      .catch(e => console.warn("Audio initialization warning:", e));
+      
+    document.removeEventListener('click', handleFirstInteraction);
+  };
+  
+  document.addEventListener('click', handleFirstInteraction, { once: true });
 }
 
 function playBuzzSound() {
-  if (!buzzAudio) return;
-  
+  if (!buzzAudio) {
+    console.warn("Audio system not initialized");
+    return;
+  }
+
   try {
-    buzzAudio.currentTime = 0;
-    buzzAudio.play().catch(e => {
-      console.log("Sound blocked:", e);
-      if (navigator.vibrate) navigator.vibrate(200);
-    });
+    buzzAudio.currentTime = 0; // Reset to start
+    
+    const playPromise = buzzAudio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(e => {
+        console.log("Audio playback blocked, using fallback");
+        // Vibrate as fallback (mobile devices)
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]); // Short vibration pattern
+      });
+    }
   } catch (e) {
-    console.error("Sound error:", e);
+    console.error("Sound playback failed:", e);
   }
 }
 
 function buzzAll(groupIndex) {
   const group = groups[groupIndex];
-  if (!group || group.members.length === 0) {
+  
+  // Validate group exists and has members
+  if (!group) {
+    alert("Invalid group selection");
+    return;
+  }
+  if (group.members.length === 0) {
     alert("Cannot buzz - group has no members!");
     return;
   }
 
-  // Play sound first
+  // 1. Immediate local feedback
   playBuzzSound();
 
-  // Then send to server
+  // 2. Send to server with error callback
   socket.emit("buzz", { 
     groupId: group.name,
     sender: currentUser.phone,
     senderName: currentUser.name
+  }, (response) => {
+    if (response?.error) {
+      console.error("Buzz delivery failed:", response.error);
+    }
   });
 
-  console.log(`Buzz sent to ${group.name}`);
+  // 3. Brief non-blocking confirmation
+  const buzzAlert = document.createElement('div');
+  buzzAlert.className = 'buzz-alert';
+  buzzAlert.textContent = `✓ Buzz sent to ${group.name}`;
+  document.body.appendChild(buzzAlert);
+  setTimeout(() => buzzAlert.remove(), 2000);
 }
 
 // ====================== SOCKET HANDLERS ====================== //
