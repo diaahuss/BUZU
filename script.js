@@ -2,17 +2,12 @@
 const app = document.getElementById("app");
 let currentUser = null;
 let groups = [];
-const socket = io('https://buzu-production-d070.up.railway.app/');
-const buzzAudio = new Audio('buzz.mp3');
+const socket = io(); // Remove URL to use same-origin
+const buzzAudio = new Audio('buzz.mp3'); // Verify file exists
 
-// Initialize audio settings
+// Audio initialization
 buzzAudio.preload = 'auto';
 buzzAudio.volume = 0.6;
-
-// Mobile audio unlock
-document.addEventListener('click', () => {
-  buzzAudio.play().then(() => buzzAudio.pause());
-}, { once: true });
 
 // ====================== RENDER FUNCTIONS ====================== //
 
