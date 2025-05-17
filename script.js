@@ -236,27 +236,49 @@ function playBuzzSound() {
 }
 
 function buzzAll(groupIndex) {
-  const group = groups[groupIndex];
-  if (!group || group.members.length === 0) {
-    alert(!group ? "Invalid group" : "Group has no members");
-    return;
+  try {
+    const group = groups[groupIndex];
+    
+    // Validation
+    if (!group) {
+      alert("Invalid group selection");
+      return;
+    }
+    if (group.members.length === 0) {
+      alert("Cannot buzz - group has no members!");
+      return;
+    }
+
+    // 1. Immediate local feedback
+    playBuzzSound();
+
+    // 2. Network buzz with error handling
+    socket.emit("buzz", { 
+      groupId: group.name,
+      sender: currentUser.phone,
+      senderName: currentUser.name,
+      timestamp: Date.now()
+    }, (response) => {
+      if (response?.error) {
+        console.error("Buzz delivery failed:", response.error);
+        showBuzzAlert("Buzz failed to send!", true);
+      }
+    });
+
+    // 3. Visual feedback
+    showBuzzAlert(`✓ Buzz sent to ${group.name}`);
+
+  } catch (error) {
+    console.error("Buzz error:", error);
+    showBuzzAlert("Buzz failed!", true);
   }
+}
 
-  // Local feedback
-  playBuzzSound();
-  
-  // Network buzz
-  socket.emit("buzz", {
-    groupId: group.name,
-    sender: currentUser.phone,
-    senderName: currentUser.name,
-    timestamp: Date.now()
-  });
-
-  // Visual feedback
+// Helper function for alerts
+function showBuzzAlert(message, isError = false) {
   const alert = document.createElement('div');
-  alert.className = 'buzz-alert';
-  alert.textContent = `✓ Buzz sent to ${group.name}`;
+  alert.className = `buzz-alert ${isError ? 'error' : ''}`;
+  alert.textContent = message;
   document.body.appendChild(alert);
   setTimeout(() => alert.remove(), 2000);
 }
