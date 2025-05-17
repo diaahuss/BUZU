@@ -3,9 +3,9 @@ const app = document.getElementById("app");
 let currentUser = null;
 let groups = [];
 const socket = io('https://buzu-production-d070.up.railway.app/');
-const buzzAudio = new Audio('buzz.mp3'); // Single declaration with initialization
 
-// Initialize audio settings
+// Enhanced Audio System
+const buzzAudio = new Audio('buzz.mp3');
 buzzAudio.preload = 'auto';
 buzzAudio.volume = 0.6;
 
@@ -210,52 +210,50 @@ function saveGroups() {
 // ====================== BUZZ SYSTEM ====================== //
 
 function initAudio() {
-  // Audio already initialized at top level
-  document.addEventListener('click', () => {
+  // Unlock audio on first interaction
+  const unlockAudio = () => {
     buzzAudio.play().then(() => buzzAudio.pause());
-  }, { once: true });
+    document.removeEventListener('click', unlockAudio);
+  };
+  document.addEventListener('click', unlockAudio, { once: true });
 }
 
 function playBuzzSound() {
   try {
     buzzAudio.currentTime = 0;
     buzzAudio.play().catch(() => {
-      if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+      // Vibrate if audio fails (mobile support)
+      if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     });
   } catch (e) {
-    console.error("Sound playback failed:", e);
+    console.error("Buzz sound error:", e);
   }
 }
 
 function buzzAll(groupIndex) {
   const group = groups[groupIndex];
-  
-  if (!group) {
-    alert("Invalid group selection");
-    return;
-  }
-  if (group.members.length === 0) {
-    alert("Cannot buzz - group has no members!");
+  if (!group || group.members.length === 0) {
+    alert(!group ? "Invalid group" : "Group has no members");
     return;
   }
 
+  // Local feedback
   playBuzzSound();
-
-  socket.emit("buzz", { 
+  
+  // Network buzz
+  socket.emit("buzz", {
     groupId: group.name,
     sender: currentUser.phone,
-    senderName: currentUser.name
-  }, (response) => {
-    if (response?.error) {
-      console.error("Buzz delivery failed:", response.error);
-    }
+    senderName: currentUser.name,
+    timestamp: Date.now()
   });
 
-  const buzzAlert = document.createElement('div');
-  buzzAlert.className = 'buzz-alert';
-  buzzAlert.textContent = `✓ Buzz sent to ${group.name}`;
-  document.body.appendChild(buzzAlert);
-  setTimeout(() => buzzAlert.remove(), 2000);
+  // Visual feedback
+  const alert = document.createElement('div');
+  alert.className = 'buzz-alert';
+  alert.textContent = `✓ Buzz sent to ${group.name}`;
+  document.body.appendChild(alert);
+  setTimeout(() => alert.remove(), 2000);
 }
 
 // ====================== SOCKET HANDLERS ====================== //
@@ -266,10 +264,13 @@ function initSocketConnection() {
   });
 
   socket.on("buzz", (data) => {
-    console.log("Buzz received:", data);
     if (data.sender !== currentUser.phone) {
-      alert(`${data.senderName} buzzed the group!`);
       playBuzzSound();
+      const alert = document.createElement('div');
+      alert.className = 'buzz-alert';
+      alert.textContent = `${data.senderName} buzzed!`;
+      document.body.appendChild(alert);
+      setTimeout(() => alert.remove(), 2000);
     }
   });
 
