@@ -45,41 +45,81 @@ const userConnections = new Map();
 const setupSocketHandlers = (socket) => {
   console.log(`New connection: ${socket.id}`);
 
-  socket.on('joinGroup', (groupName, userId) => {
-    if (!groupName || !userId) return socket.emit('error', 'Invalid group/user ID');
-    
-    if (!groups.has(groupName)) groups.set(groupName, new Set());
-    
-    groups.get(groupName).add(socket.id);
-    userConnections.set(userId, socket.id);
-    socket.join(groupName);
-    console.log(`${userId} joined ${groupName}`);
-  });
-
-  socket.on('buzz', ({ groupId, userId, userName }, callback) => {
+  // Group Management
+  socket.on('joinGroup', (groupName, userId, callback) => {
     try {
-      if (!groupId || !userId || !userName) throw new Error('Missing required fields');
+      if (!groupName || !userId) {
+        throw new Error('Invalid group/user ID');
+      }
+
+      if (!groups.has(groupName)) {
+        groups.set(groupName, new Set());
+      }
+
+      groups.get(groupName).add(socket.id);
+      userConnections.set(userId, socket.id);
+      socket.join(groupName);
       
-      const timestamp = new Date().toISOString();
-      io.to(groupId).emit('buzz', { groupId, userId, userName, timestamp });
-      callback({ status: 'success', timestamp });
+      console.log(`${userId} joined ${groupName}`);
+      if (callback) callback({ status: 'success', groupName });
+      
     } catch (error) {
-      console.error('Buzz failed:', error.message);
-      callback({ status: 'error', message: error.message });
+      console.error('Join group error:', error.message);
+      if (callback) callback({ status: 'error', message: error.message });
+      socket.emit('error', error.message);
     }
   });
 
+  // Buzz Handling
+  socket.on('buzz', (data, callback) => {
+    try {
+      if (!data?.groupId || !data?.userId || !data?.userName) {
+        throw new Error('Missing required fields');
+      }
+
+      if (!groups.has(data.groupId)) {
+        throw new Error('Group does not exist');
+      }
+
+      const timestamp = new Date().toISOString();
+      const buzzData = {
+        ...data,
+        timestamp,
+        socketId: socket.id
+      };
+
+      // Broadcast to all in group except sender
+      socket.to(data.groupId).emit('buzz', buzzData);
+      
+      console.log(`Buzz from ${data.userId} to ${data.groupId}`);
+      if (callback) callback({ status: 'success', timestamp });
+      
+    } catch (error) {
+      console.error('Buzz error:', error.message);
+      if (callback) callback({ status: 'error', message: error.message });
+    }
+  });
+
+  // Cleanup on Disconnect
   socket.on('disconnect', () => {
     console.log(`Disconnected: ${socket.id}`);
     
+    // Remove from groups
     groups.forEach((members, groupName) => {
-      if (members.delete(socket.id) && members.size === 0) {
-        groups.delete(groupName);
+      if (members.delete(socket.id) {
+        if (members.size === 0) {
+          groups.delete(groupName);
+          console.log(`Group ${groupName} emptied and removed`);
+        }
       }
     });
     
+    // Remove user mapping
     userConnections.forEach((socketId, userId) => {
-      if (socketId === socket.id) userConnections.delete(userId);
+      if (socketId === socket.id) {
+        userConnections.delete(userId);
+        console.log(`User ${userId} disconnected`);
+      }
     });
   });
 };
