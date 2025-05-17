@@ -181,60 +181,76 @@ button:active {
   text-align: center;
   max-width: 80%;
   white-space: nowrap;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  pointer-events: none;
 }
 
 .buzz-notification {
   bottom: 20px;
   background: linear-gradient(135deg, #ff5722, #e64a19);
-  font-weight: bold;
+  font-weight: 600;
   animation-name: buzzInOut;
   border-left: 4px solid #bf360c;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.2);
 }
 
 .buzz-confirm {
   bottom: 70px;
-  background: rgba(0, 0, 0, 0.9);
+  background: rgba(0, 0, 0, 0.85);
   animation-name: fadeInOut;
-  backdrop-filter: blur(2px);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(255,255,255,0.1);
+  font-weight: 500;
 }
 
 /* Error state */
 .buzz-notification.error {
-  background: linear-gradient(135deg, #ff4444, #cc0000);
-  border-left-color: #990000;
+  background: linear-gradient(135deg, #ff4444, #c00);
+  border-left-color: #900;
   animation: errorBuzz 2s ease;
 }
 
+/* Animations */
 @keyframes buzzInOut {
   0% { 
     transform: translateX(-50%) scale(0.8); 
     opacity: 0;
   }
   15% {
-    transform: translateX(-50%) scale(1.1);
+    transform: translateX(-50%) scale(1.05);
     opacity: 1;
   }
   30% {
-    transform: translateX(-50%) scale(1);
+    transform: translateX(-50%) scale(0.98);
+  }
+  50% {
+    transform: translateX(-50%) scale(1.01);
   }
   70% {
     opacity: 1;
+    transform: translateX(-50%) scale(1);
   }
   100% {
     opacity: 0;
+    transform: translateX(-50%) scale(0.95);
   }
 }
 
 @keyframes fadeInOut {
-  0%, 100% { opacity: 0; }
-  20%, 80% { opacity: 1; }
+  0%, 100% { 
+    opacity: 0;
+    transform: translateX(-50%) translateY(10px);
+  }
+  20%, 80% { 
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 }
 
 @keyframes errorBuzz {
   0%, 100% { transform: translateX(-50%); }
-  20%, 40%, 60% { transform: translateX(calc(-50% - 5px)); }
-  30%, 50%, 70% { transform: translateX(calc(-50% + 5px)); }
-  80% { transform: translateX(-50%); }
+  20%, 60% { transform: translateX(calc(-50% - 8px)); }
+  40%, 80% { transform: translateX(calc(-50% + 8px)); }
 }
 
 /* ===== RESPONSIVE ADJUSTMENTS ===== */
