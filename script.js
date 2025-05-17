@@ -284,25 +284,49 @@ function showBuzzAlert(message, isError = false) {
 }
 
 // ====================== SOCKET HANDLERS ====================== //
-
 function initSocketConnection() {
   socket.on("connect", () => {
-    console.log("Connected to server");
-  });
-
-  socket.on("buzz", (data) => {
-    if (data.sender !== currentUser.phone) {
-      playBuzzSound();
-      const alert = document.createElement('div');
-      alert.className = 'buzz-alert';
-      alert.textContent = `${data.senderName} buzzed!`;
-      document.body.appendChild(alert);
-      setTimeout(() => alert.remove(), 2000);
+    console.log("Connected to server with ID:", socket.id);
+    if (currentUser) {
+      socket.emit('authenticate', { userId: currentUser.phone });
     }
   });
 
-  socket.on("disconnect", () => {
-    console.log("Disconnected from server");
+  socket.on("buzz", (data) => {
+    try {
+      if (!data || !data.sender || !data.senderName) {
+        throw new Error("Invalid buzz data");
+      }
+      
+      if (data.sender !== currentUser?.phone) {
+        playBuzzSound();
+        showBuzzAlert(`${data.senderName} buzzed!`);
+        
+        // Optional: Add visual effect to sender's name
+        highlightSender(data.sender);
+      }
+    } catch (error) {
+      console.error("Buzz handling error:", error);
+    }
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.log("Disconnected:", reason);
+    showBuzzAlert("Connection lost - reconnecting...", true);
+  });
+
+  socket.on("connect_error", (error) => {
+    console.error("Connection error:", error.message);
+    showBuzzAlert("Connection error", true);
+  });
+}
+
+// Helper function (add to your existing code)
+function highlightSender(senderId) {
+  const senderElements = document.querySelectorAll(`[data-user="${senderId}"]`);
+  senderElements.forEach(el => {
+    el.classList.add('buzz-highlight');
+    setTimeout(() => el.classList.remove('buzz-highlight'), 1000);
   });
 }
 
