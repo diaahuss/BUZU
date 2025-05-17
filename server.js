@@ -106,7 +106,7 @@ const setupSocketHandlers = (socket) => {
     
     // Remove from groups
     groups.forEach((members, groupName) => {
-      if (members.delete(socket.id) {
+      if (members.delete(socket.id)) {
         if (members.size === 0) {
           groups.delete(groupName);
           console.log(`Group ${groupName} emptied and removed`);
