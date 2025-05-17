@@ -6,13 +6,31 @@ const path = require('path');
 // ====================== INITIALIZATION ====================== //
 const app = express();
 const server = http.createServer(app);
+
+// Fix 1: Serve files from root directory (since no 'public' folder)
+app.use(express.static(__dirname)); // Changed from path.join(__dirname, 'public')
+
+// Fix 2: Add Railway-required health check
+app.get('/health', (req, res) => {
+  res.status(200).send('OK'); // Simple response for Railway health checks
+});
+
+// Fix 3: Configure Socket.IO for flat directory structure
 const io = socketIo(server, {
   pingTimeout: 60000,
   pingInterval: 25000,
   cors: {
-    origin: "*", // Restrict in production
+    origin: "*", // Allow all origins (adjust for production)
     methods: ["GET", "POST"]
-  }
+  },
+  // Critical for Railway:
+  transports: ['websocket', 'polling'],
+  allowEIO3: true // For Socket.IO v2/v3 compatibility
+});
+
+// Fix 4: Ensure all routes fall back to index.html
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // ====================== CONFIGURATION ====================== //
