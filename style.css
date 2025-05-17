@@ -176,24 +176,33 @@ button:active {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   animation-duration: 2s;
   animation-timing-function: ease;
+  font-size: 14px;
+  padding: 12px 24px;
+  text-align: center;
+  max-width: 80%;
+  white-space: nowrap;
 }
 
 .buzz-notification {
   bottom: 20px;
-  background: #ff5722;
-  padding: 10px 20px;
+  background: linear-gradient(135deg, #ff5722, #e64a19);
   font-weight: bold;
-  font-size: 14px;
   animation-name: buzzInOut;
-  opacity: 0;
+  border-left: 4px solid #bf360c;
 }
 
 .buzz-confirm {
   bottom: 70px;
-  background: rgba(0, 0, 0, 0.8);
-  padding: 8px 16px;
-  font-size: 14px;
+  background: rgba(0, 0, 0, 0.9);
   animation-name: fadeInOut;
+  backdrop-filter: blur(2px);
+}
+
+/* Error state */
+.buzz-notification.error {
+  background: linear-gradient(135deg, #ff4444, #cc0000);
+  border-left-color: #990000;
+  animation: errorBuzz 2s ease;
 }
 
 @keyframes buzzInOut {
@@ -219,6 +228,13 @@ button:active {
 @keyframes fadeInOut {
   0%, 100% { opacity: 0; }
   20%, 80% { opacity: 1; }
+}
+
+@keyframes errorBuzz {
+  0%, 100% { transform: translateX(-50%); }
+  20%, 40%, 60% { transform: translateX(calc(-50% - 5px)); }
+  30%, 50%, 70% { transform: translateX(calc(-50% + 5px)); }
+  80% { transform: translateX(-50%); }
 }
 
 /* ===== RESPONSIVE ADJUSTMENTS ===== */
