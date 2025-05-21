@@ -2,17 +2,25 @@
 const app = document.getElementById("app");
 let currentUser = null;
 let groups = [];
-const socket = io('https://buzu-production-d070.up.railway.app'); // Railway URL
+let currentGroupId = null; // Critical addition for socket operations
+const socket = io('https://buzu-production-d070.up.railway.app');
 
-// Audio System
+// Audio System (optimized minimal version)
 const buzzAudio = new Audio('buzz.mp3');
 buzzAudio.preload = 'auto';
 buzzAudio.volume = 0.6;
 
-// Mobile audio unlock
-document.addEventListener('click', () => {
-  buzzAudio.play().then(() => buzzAudio.pause());
-}, { once: true });
+// Mobile audio unlock (simplified reliable version)
+function handleFirstInteraction() {
+  // Just attempt to play - browsers will remember this permission
+  buzzAudio.play().catch(e => console.log("Audio ready:", e.message));
+  document.removeEventListener('click', handleFirstInteraction);
+  document.removeEventListener('touchstart', handleFirstInteraction);
+}
+
+// Set up both mouse and touch listeners
+document.addEventListener('click', handleFirstInteraction, { once: true });
+document.addEventListener('touchstart', handleFirstInteraction, { once: true });
 
 // ====================== RENDER FUNCTIONS ====================== //
 
