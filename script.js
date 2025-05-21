@@ -296,25 +296,31 @@ function initSocketConnection() {
   socket.on("connect", () => {
     console.log("Connected to server with ID:", socket.id);
     
-    if (currentUser && currentGroupId) {
-      // Single authentication call
-      socket.emit('authenticate', { 
-        userId: currentUser.phone 
-      });
-      
-      // Group joining with proper validation
-      socket.emit('join_group', { 
-        userId: currentUser.phone, 
-        groupId: currentGroupId 
-      }, (response) => {
-        if (response?.error) {
-          console.error("Join group failed:", response.error);
-          showBuzzAlert("Failed to join group", true);
-        } else {
-          console.log("Successfully joined group:", currentGroupId);
-        }
-      });
+    // Validate required values
+    if (!currentUser?.phone) {
+      console.error("Cannot authenticate - missing user phone");
+      return;
     }
+    
+    if (!currentGroupId) {
+      console.error("Cannot join group - missing group ID");
+      return;
+    }
+
+    // Proceed with connection
+    socket.emit('authenticate', { userId: currentUser.phone });
+    
+    socket.emit('join_group', { 
+      userId: currentUser.phone,
+      groupId: currentGroupId 
+    }, (response) => {
+      if (response?.error) {
+        console.error("Join group failed:", response.error);
+        showBuzzAlert("Failed to join group", true);
+      } else {
+        console.log("Successfully joined group:", currentGroupId);
+      }
+    });
   });
 
   // Consolidated buzz handler (matches your buzzAll emission)
