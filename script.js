@@ -287,47 +287,31 @@ function showBuzzAlert(message, isError = false) {
 function initSocketConnection() {
   socket.on("connect", () => {
     console.log("Connected to server with ID:", socket.id);
-    if (currentUser) {
-      socket.emit('authenticate', { userId: currentUser.phone });
-    }
-  });
-
-  socket.on("buzz", (data) => {
-    try {
-      if (!data || !data.sender || !data.senderName) {
-        throw new Error("Invalid buzz data");
-      }
+    
+    // Authenticate AND join group after connection
+    if (currentUser && currentGroupId) {
+      socket.emit('authenticate', { 
+        userId: currentUser.phone 
+      });
       
-      if (data.sender !== currentUser?.phone) {
-        playBuzzSound();
-        showBuzzAlert(`${data.senderName} buzzed!`);
-        
-        // Optional: Add visual effect to sender's name
-        highlightSender(data.sender);
-      }
-    } catch (error) {
-      console.error("Buzz handling error:", error);
+      // Add this: Emit 'join_group' with valid IDs
+      socket.emit('join_group', { 
+        userId: currentUser.phone, 
+        groupId: currentGroupId // Ensure this is set elsewhere in your code
+      }, (response) => {
+        if (response.error) {
+          console.error("Join group failed:", response.error);
+        } else {
+          console.log("Successfully joined group:", currentGroupId);
+        }
+      });
     }
   });
 
-  socket.on("disconnect", (reason) => {
-    console.log("Disconnected:", reason);
-    showBuzzAlert("Connection lost - reconnecting...", true);
-  });
-
-  socket.on("connect_error", (error) => {
-    console.error("Connection error:", error.message);
-    showBuzzAlert("Connection error", true);
-  });
-}
-
-// Helper function (add to your existing code)
-function highlightSender(senderId) {
-  const senderElements = document.querySelectorAll(`[data-user="${senderId}"]`);
-  senderElements.forEach(el => {
-    el.classList.add('buzz-highlight');
-    setTimeout(() => el.classList.remove('buzz-highlight'), 1000);
-  });
+  // Rest of your existing handlers (buzz, disconnect, etc.)
+  socket.on("buzz", (data) => { ... });
+  socket.on("disconnect", (reason) => { ... });
+  socket.on("connect_error", (error) => { ... });
 }
 
 // ====================== INITIALIZATION ====================== //
