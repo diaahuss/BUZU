@@ -288,19 +288,20 @@ function initSocketConnection() {
   socket.on("connect", () => {
     console.log("Connected to server with ID:", socket.id);
     
-    // Authenticate AND join group after connection
     if (currentUser && currentGroupId) {
+      // Single authentication call
       socket.emit('authenticate', { 
         userId: currentUser.phone 
       });
       
-      // Add this: Emit 'join_group' with valid IDs
+      // Group joining with proper validation
       socket.emit('join_group', { 
         userId: currentUser.phone, 
-        groupId: currentGroupId // Ensure this is set elsewhere in your code
+        groupId: currentGroupId 
       }, (response) => {
-        if (response.error) {
+        if (response?.error) {
           console.error("Join group failed:", response.error);
+          showBuzzAlert("Failed to join group", true);
         } else {
           console.log("Successfully joined group:", currentGroupId);
         }
@@ -308,10 +309,34 @@ function initSocketConnection() {
     }
   });
 
-  // Rest of your existing handlers (buzz, disconnect, etc.)
-  socket.on("buzz", (data) => { ... });
-  socket.on("disconnect", (reason) => { ... });
-  socket.on("connect_error", (error) => { ... });
+  // Consolidated buzz handler (matches your buzzAll emission)
+  socket.on("buzz", (data) => {
+    try {
+      // Validate incoming buzz data
+      if (!data || !data.sender || !data.groupId) {
+        throw new Error("Invalid buzz data structure");
+      }
+      
+      // Only react to other users' buzzes
+      if (data.sender !== currentUser?.phone) {
+        playBuzzSound();
+        showBuzzAlert(`${data.senderName || 'Someone'} buzzed!`);
+      }
+    } catch (error) {
+      console.error("Buzz handling error:", error);
+    }
+  });
+
+  // Connection management
+  socket.on("disconnect", (reason) => {
+    console.log("Disconnected:", reason);
+    showBuzzAlert("Connection lost - reconnecting...", true);
+  });
+
+  socket.on("connect_error", (error) => {
+    console.error("Connection error:", error.message);
+    showBuzzAlert("Connection failed. Try refreshing.", true);
+  });
 }
 
 // ====================== INITIALIZATION ====================== //
