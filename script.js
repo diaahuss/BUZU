@@ -1,5 +1,11 @@
 // ===== GLOBAL DECLARATIONS ===== //
 const app = document.getElementById("app");
+let currentUser = null;
+let groups = [];
+let currentGroupId = null;
+const socket = io('https://buzu-production-d070.up.railway.app');
+
+// Audio System (single declaration)
 const buzzAudio = (() => {
   const audio = new Audio('buzz.mp3');
   audio.preload = 'auto';
@@ -7,12 +13,7 @@ const buzzAudio = (() => {
   return audio;
 })();
 
-let currentUser = null;
-let groups = [];
-let currentGroupId = null;
-const socket = io('https://buzu-production-d070.up.railway.app');
-
-// Mobile audio unlock (improved with state tracking)
+// Mobile audio unlock
 let audioUnlocked = false;
 const initAudio = () => {
   if (audioUnlocked) return;
@@ -76,28 +77,33 @@ function renderDashboard() {
     <button onclick="createGroup()">Create Group</button>
     <button onclick="logout()">Logout</button>
     <h2>My Groups</h2>
-    ${groups.map((group, index) => `
-      <div class="group">
-        <div class="group-box" onclick="openGroup(${index})">
-          ${group.name} <span class="arrow">→</span>
+    <div class="groups-container">
+      ${groups.map((group, index) => `
+        <div class="group" data-group-name="${group.name}">
+          <div class="group-box" onclick="openGroup(${index})">
+            ${group.name} <span class="arrow">→</span>
+          </div>
+          <button onclick="event.stopPropagation(); editGroup(${index})">Edit</button>
+          <button onclick="event.stopPropagation(); removeGroup(${index})">Remove</button>
         </div>
-        <button onclick="event.stopPropagation(); editGroup(${index})">Edit</button>
-        <button onclick="event.stopPropagation(); removeGroup(${index})">Remove</button>
-      </div>
-    `).join("")}
+      `).join("")}
+    </div>
   `;
 }
 
 function renderGroup(index) {
   const group = groups[index];
   currentGroupId = group.name;
+  sessionStorage.setItem('lastActiveGroup', group.name);
   
   app.innerHTML = `
     <div class="banner">
-      <span onclick="renderDashboard()" style="cursor:pointer;">←</span> ${group.name}
+      <span onclick="renderDashboard()" class="back-arrow">←</span> ${group.name}
     </div>
-    <button onclick="addMember(${index})">Add Member</button>
-    <button onclick="buzzAll(${index})">Buzz All</button>
+    <div class="group-actions">
+      <button onclick="addMember(${index})">Add Member</button>
+      <button onclick="buzzAll(${index})" class="buzz-btn">Buzz All</button>
+    </div>
     <h3>Members:</h3>
     <div class="members-list">
       ${group.members.map((m, i) => `
@@ -110,10 +116,7 @@ function renderGroup(index) {
   `;
   
   if (socket.connected) {
-    socket.emit('join_group', {
-      userId: currentUser.phone,
-      groupId: currentGroupId
-    });
+    joinGroupRoom(group.name);
   }
 }
 
@@ -157,21 +160,17 @@ function logout() {
   groups = [];
   currentGroupId = null;
   localStorage.removeItem('currentUser');
+  sessionStorage.removeItem('lastActiveGroup');
   renderLogin();
 }
 
 // ====================== GROUP FUNCTIONS ====================== //
 function createGroup() {
   const name = prompt("Group name:")?.trim();
-  if (!name) {
-    alert("Group name cannot be empty");
-    return;
-  }
-
-  // Check if group name already exists
-  if (groups.some(group => group.name.toLowerCase() === name.toLowerCase())) {
-    alert("A group with this name already exists");
-    return;
+  if (!name) return alert("Group name cannot be empty");
+  
+  if (groups.some(g => g.name.toLowerCase() === name.toLowerCase())) {
+    return alert("Group name already exists");
   }
 
   groups.push({ 
@@ -184,296 +183,158 @@ function createGroup() {
   });
   saveGroups();
   renderDashboard();
-  showNotification(`Group "${name}" created successfully!`);
+  showNotification(`Created group "${name}"`);
 }
 
 function addMember(groupIndex) {
   const name = prompt("Member name:")?.trim();
-  if (!name) {
-    alert("Member name cannot be empty");
-    return;
-  }
+  const phone = prompt("Phone number:")?.trim();
+  
+  if (!name || !phone) return alert("All fields required");
+  if (!/^\d{10,15}$/.test(phone)) return alert("Invalid phone number");
 
-  let phone = prompt("Phone number:")?.trim();
-  if (!phone) {
-    alert("Phone number cannot be empty");
-    return;
-  }
-
-  // Basic phone number validation
-  if (!/^\d{10,15}$/.test(phone)) {
-    alert("Please enter a valid phone number (10-15 digits)");
-    return;
-  }
-
-  // Check if member already exists in group
   const group = groups[groupIndex];
-  if (group.members.some(member => member.phone === phone)) {
-    alert("This member is already in the group");
-    return;
+  if (group.members.some(m => m.phone === phone)) {
+    return alert("Member already in group");
   }
 
   group.members.push({ name, phone });
   saveGroups();
   renderGroup(groupIndex);
-  showNotification(`Added ${name} to ${group.name}`);
+  showNotification(`Added ${name} to group`);
 }
 
 function removeMember(groupIndex, memberIndex) {
   const group = groups[groupIndex];
   const member = group.members[memberIndex];
   
-  if (group.members.length <= 1) {
-    alert("Cannot remove the last member from a group");
-    return;
-  }
-
-  // Prevent removing yourself if you're the admin
+  if (group.members.length <= 1) return alert("Cannot remove last member");
   if (member.phone === currentUser.phone && member.isAdmin) {
-    if (!confirm("You're the admin. Removing yourself will delete the group. Continue?")) {
-      return;
-    }
-    removeGroup(groupIndex);
-    return;
+    if (!confirm("Deleting yourself will delete the group. Continue?")) return;
+    return removeGroup(groupIndex);
   }
 
-  if (!confirm(`Remove ${member.name} from ${group.name}?`)) return;
+  if (!confirm(`Remove ${member.name}?`)) return;
   
   group.members.splice(memberIndex, 1);
   saveGroups();
   renderGroup(groupIndex);
-  showNotification(`Removed ${member.name} from ${group.name}`);
+  showNotification(`Removed ${member.name}`);
 }
 
 function editGroup(groupIndex) {
   const group = groups[groupIndex];
   const newName = prompt("New name:", group.name)?.trim();
   
-  if (!newName) {
-    alert("Group name cannot be empty");
-    return;
-  }
-
-  if (newName === group.name) return; // No change
-
-  // Check if new name already exists
+  if (!newName) return alert("Name cannot be empty");
+  if (newName === group.name) return;
+  
   if (groups.some((g, i) => i !== groupIndex && g.name.toLowerCase() === newName.toLowerCase())) {
-    alert("A group with this name already exists");
-    return;
+    return alert("Name already exists");
   }
 
   group.name = newName;
   saveGroups();
   renderDashboard();
-  showNotification(`Group renamed to "${newName}"`);
+  showNotification(`Renamed to "${newName}"`);
 }
 
 function removeGroup(groupIndex) {
   const groupName = groups[groupIndex].name;
-  if (!confirm(`Are you sure you want to delete "${groupName}"? This cannot be undone.`)) return;
+  if (!confirm(`Delete "${groupName}" permanently?`)) return;
   
   groups.splice(groupIndex, 1);
   saveGroups();
   renderDashboard();
-  showNotification(`Group "${groupName}" has been deleted`);
+  showNotification(`Deleted "${groupName}"`);
 }
 
 function saveGroups() {
-  try {
-    currentUser.groups = groups;
-    localStorage.setItem(currentUser.phone, JSON.stringify(currentUser));
-  } catch (error) {
-    console.error("Error saving groups:", error);
-    alert("Failed to save groups. Please try again.");
+  currentUser.groups = groups;
+  localStorage.setItem(currentUser.phone, JSON.stringify(currentUser));
+}
+
+// ====================== BUZZ SYSTEM ====================== //
+let isBuzzCooldown = false;
+
+function playBuzzSound() {
+  buzzAudio.currentTime = 0;
+  buzzAudio.play().catch(e => {
+    console.warn("Audio error:", e);
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  });
+}
+
+function buzzAll(groupIndex) {
+  if (isBuzzCooldown) return showNotification("Wait before buzzing again", true);
+  
+  const group = groups[groupIndex];
+  if (!group?.members?.length) return showNotification("No members to buzz", true);
+
+  playBuzzSound();
+  isBuzzCooldown = true;
+  setTimeout(() => { isBuzzCooldown = false; }, 3000);
+
+  socket.emit("buzz", { 
+    groupId: group.name,
+    sender: currentUser.phone,
+    senderName: currentUser.name,
+    members: group.members.map(m => m.phone)
+  }, (response) => {
+    if (response?.error) {
+      showNotification(`Buzz failed: ${response.error}`, true);
+    } else {
+      showNotification(`✓ Buzz sent to ${group.members.length} members`);
+    }
+  });
+}
+
+// ====================== SOCKET HANDLERS ====================== //
+function initSocketConnection() {
+  if (!socket) return console.error("Socket not initialized");
+
+  socket.on("connect", () => {
+    socket.emit('authenticate', { userId: currentUser.phone });
+    if (currentGroupId) joinGroupRoom(currentGroupId);
+  });
+
+  socket.on("buzz", (data) => {
+    if (data?.sender === currentUser.phone) return;
+    playBuzzSound();
+    showNotification(`${data.senderName || "Someone"} buzzed!`);
+    highlightGroup(data.groupId);
+  });
+
+  socket.on("connect_error", (err) => {
+    console.error("Connection error:", err);
+    showNotification("Connection issue", true);
+  });
+}
+
+function joinGroupRoom(groupId) {
+  if (!socket.connected) return;
+  socket.emit('join_group', { userId: currentUser.phone, groupId });
+}
+
+function highlightGroup(groupName) {
+  const el = document.querySelector(`[data-group-name="${groupName}"]`);
+  if (el) {
+    el.classList.add('highlight');
+    setTimeout(() => el.classList.remove('highlight'), 2000);
   }
 }
 
-// Helper function for notifications
-function showNotification(message, duration = 3000) {
+// ====================== UTILITIES ====================== //
+function showNotification(message, isError = false) {
   const notification = document.createElement('div');
-  notification.className = 'notification';
+  notification.className = `notification ${isError ? 'error' : ''}`;
   notification.textContent = message;
   document.body.appendChild(notification);
   
   setTimeout(() => {
     notification.classList.add('fade-out');
     setTimeout(() => notification.remove(), 500);
-  }, duration);
-}
-
-// ====================== BUZZ SYSTEM ====================== //
-const buzzAudio = new Audio('buzz-sound.mp3'); // Ensure this file exists
-let isBuzzCooldown = false;
-
-function playBuzzSound() {
-  try {
-    // Reset audio to start and play
-    buzzAudio.currentTime = 0;
-    buzzAudio.play().catch(error => {
-      console.warn("Audio playback failed:", error);
-      // Fallback to vibration if available
-      if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200, 100, 200]); // More distinct pattern
-      }
-    });
-  } catch (error) {
-    console.error("Error playing buzz sound:", error);
-    // Final fallback - visual alert
-    flashScreen();
-  }
-}
-
-function flashScreen() {
-  document.body.style.backgroundColor = '#ff0000';
-  setTimeout(() => {
-    document.body.style.backgroundColor = '';
-  }, 100);
-}
-
-function buzzAll(groupIndex) {
-  if (isBuzzCooldown) {
-    showBuzzAlert("Please wait before buzzing again", true);
-    return;
-  }
-
-  const group = groups[groupIndex];
-  if (!group?.members || group.members.length === 0) {
-    showBuzzAlert("Invalid group or no members", true);
-    return;
-  }
-
-  // Play local sound immediately for better UX
-  playBuzzSound();
-  
-  // Set cooldown (3 seconds)
-  isBuzzCooldown = true;
-  setTimeout(() => { isBuzzCooldown = false; }, 3000);
-
-  // Send to server
-  socket.emit("buzz", { 
-    groupId: group.name,
-    sender: currentUser.phone,
-    senderName: currentUser.name,
-    timestamp: Date.now(),
-    members: group.members.map(m => m.phone) // Send member list for server validation
-  }, (response) => {
-    if (response?.error) {
-      showBuzzAlert(`Failed to buzz: ${response.error}`, true);
-    } else {
-      showBuzzAlert(`✓ Buzz sent to ${group.name} (${group.members.length} members)`);
-      logBuzzActivity(group.name, group.members.length);
-    }
-  });
-}
-
-function showBuzzAlert(message, isError = false) {
-  // Remove any existing alerts first
-  document.querySelectorAll('.buzz-alert').forEach(el => el.remove());
-  
-  const alert = document.createElement('div');
-  alert.className = `buzz-alert ${isError ? 'error' : 'success'}`;
-  alert.innerHTML = `
-    <span class="buzz-icon">${isError ? '⚠️' : '🔔'}</span>
-    <span>${message}</span>
-  `;
-  document.body.appendChild(alert);
-  
-  setTimeout(() => {
-    alert.classList.add('fade-out');
-    setTimeout(() => alert.remove(), 500);
   }, isError ? 3000 : 2000);
-}
-
-function logBuzzActivity(groupName, memberCount) {
-  console.log(`[${new Date().toISOString()}] Buzz sent to ${groupName} (${memberCount} members)`);
-  // You could also send this to analytics or save locally
-}
-
-// ====================== SOCKET HANDLERS ====================== //
-function initSocketConnection() {
-  if (!socket) {
-    console.error("Socket not initialized");
-    return;
-  }
-
-  // Connection established
-  socket.on("connect", () => {
-    console.log("Socket connected");
-    if (!currentUser?.phone) {
-      console.warn("No current user for socket auth");
-      return;
-    }
-    
-    // Authenticate with server
-    socket.emit('authenticate', { 
-      userId: currentUser.phone,
-      token: generateAuthToken() // Implement this if needed
-    }, (authResponse) => {
-      if (authResponse?.error) {
-        console.error("Authentication failed:", authResponse.error);
-      }
-    });
-    
-    // Rejoin current group if needed
-    if (currentGroupId) {
-      joinGroupRoom(currentGroupId);
-    }
-  });
-
-  // Handle incoming buzz
-  socket.on("buzz", (data) => {
-    if (!data?.sender || data.sender === currentUser.phone) return;
-    
-    try {
-      playBuzzSound();
-      showBuzzAlert(`${data.senderName || "Someone"} buzzed the group!`);
-      
-      // Visual feedback
-      highlightGroup(data.groupId);
-    } catch (error) {
-      console.error("Error handling buzz:", error);
-    }
-  });
-
-  // Handle connection errors
-  socket.on("connect_error", (error) => {
-    console.error("Connection error:", error);
-    showBuzzAlert("Connection problem - reconnecting...", true);
-  });
-
-  // Auto-reconnect
-  socket.on("disconnect", (reason) => {
-    console.log("Disconnected:", reason);
-    if (reason === "io server disconnect") {
-      // Manual reconnect needed
-      socket.connect();
-    }
-    // Other disconnections will auto-reconnect
-  });
-}
-
-function joinGroupRoom(groupId) {
-  if (!socket.connected) return;
-  
-  socket.emit('join_group', {
-    userId: currentUser.phone,
-    groupId: groupId,
-    timestamp: Date.now()
-  }, (response) => {
-    if (response?.error) {
-      console.error("Failed to join group:", response.error);
-    }
-  });
-}
-
-function highlightGroup(groupName) {
-  const groupElement = document.querySelector(`[data-group-name="${groupName}"]`);
-  if (groupElement) {
-    groupElement.classList.add('buzz-highlight');
-    setTimeout(() => {
-      groupElement.classList.remove('buzz-highlight');
-    }, 2000);
-  }
 }
 
 // ====================== INITIALIZATION ====================== //
@@ -483,24 +344,14 @@ document.addEventListener('DOMContentLoaded', () => {
     if (savedUser) {
       currentUser = JSON.parse(savedUser);
       groups = currentUser.groups || [];
-      
-      // Initialize systems
       initAudio();
       initSocketConnection();
-      
-      // Check if we need to reconnect to a specific group
-      const lastGroup = sessionStorage.getItem('lastActiveGroup');
-      if (lastGroup) {
-        currentGroupId = lastGroup;
-      }
-      
       renderDashboard();
     } else {
       renderLogin();
     }
   } catch (error) {
-    console.error("Initialization error:", error);
-    showBuzzAlert("System error - please refresh", true);
-    renderLogin(); // Fallback to login screen
+    console.error("Init error:", error);
+    renderLogin();
   }
 });
