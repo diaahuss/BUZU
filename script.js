@@ -1,25 +1,38 @@
 // ===== GLOBAL DECLARATIONS ===== //
 const app = document.getElementById("app");
+const buzzAudio = (() => {
+  const audio = new Audio('buzz.mp3');
+  audio.preload = 'auto';
+  audio.volume = 0.6;
+  return audio;
+})();
+
 let currentUser = null;
 let groups = [];
 let currentGroupId = null;
 const socket = io('https://buzu-production-d070.up.railway.app');
 
-// Audio System
-const buzzAudio = new Audio('buzz.mp3');
-buzzAudio.preload = 'auto';
-buzzAudio.volume = 0.6;
+// Mobile audio unlock (improved with state tracking)
+let audioUnlocked = false;
+const initAudio = () => {
+  if (audioUnlocked) return;
 
-// Mobile audio unlock
-function initAudio() {
   const unlockAudio = () => {
-    buzzAudio.play().catch(e => console.log("Audio init:", e));
+    buzzAudio.play()
+      .then(() => {
+        audioUnlocked = true;
+        buzzAudio.pause();
+        buzzAudio.currentTime = 0;
+      })
+      .catch(e => console.log("Audio init error:", e));
+      
     document.removeEventListener('click', unlockAudio);
     document.removeEventListener('touchstart', unlockAudio);
   };
+
   document.addEventListener('click', unlockAudio, { once: true });
   document.addEventListener('touchstart', unlockAudio, { once: true });
-}
+};
 
 // ====================== RENDER FUNCTIONS ====================== //
 function renderLogin() {
