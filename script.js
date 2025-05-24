@@ -289,205 +289,76 @@ function showNotification(message, duration = 3000) {
 }
 
 // ====================== BUZZ SYSTEM ====================== //
-const buzzAudio = new Audio('buzz-sound.mp3'); // Ensure this file exists
-let isBuzzCooldown = false;
-
 function playBuzzSound() {
-  try {
-    // Reset audio to start and play
-    buzzAudio.currentTime = 0;
-    buzzAudio.play().catch(error => {
-      console.warn("Audio playback failed:", error);
-      // Fallback to vibration if available
-      if (navigator.vibrate) {
-        navigator.vibrate([200, 100, 200, 100, 200]); // More distinct pattern
-      }
-    });
-  } catch (error) {
-    console.error("Error playing buzz sound:", error);
-    // Final fallback - visual alert
-    flashScreen();
-  }
-}
-
-function flashScreen() {
-  document.body.style.backgroundColor = '#ff0000';
-  setTimeout(() => {
-    document.body.style.backgroundColor = '';
-  }, 100);
+  buzzAudio.currentTime = 0;
+  buzzAudio.play().catch(() => {
+    if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+  });
 }
 
 function buzzAll(groupIndex) {
-  if (isBuzzCooldown) {
-    showBuzzAlert("Please wait before buzzing again", true);
-    return;
-  }
-
   const group = groups[groupIndex];
-  if (!group?.members || group.members.length === 0) {
-    showBuzzAlert("Invalid group or no members", true);
-    return;
-  }
+  if (!group?.members.length) return alert("Invalid group");
 
-  // Play local sound immediately for better UX
   playBuzzSound();
   
-  // Set cooldown (3 seconds)
-  isBuzzCooldown = true;
-  setTimeout(() => { isBuzzCooldown = false; }, 3000);
-
-  // Send to server
   socket.emit("buzz", { 
     groupId: group.name,
     sender: currentUser.phone,
     senderName: currentUser.name,
-    timestamp: Date.now(),
-    members: group.members.map(m => m.phone) // Send member list for server validation
+    timestamp: Date.now()
   }, (response) => {
-    if (response?.error) {
-      showBuzzAlert(`Failed to buzz: ${response.error}`, true);
-    } else {
-      showBuzzAlert(`✓ Buzz sent to ${group.name} (${group.members.length} members)`);
-      logBuzzActivity(group.name, group.members.length);
+    if (!response?.error) {
+      showBuzzAlert(`✓ Buzz sent to ${group.name}`);
     }
   });
 }
 
 function showBuzzAlert(message, isError = false) {
-  // Remove any existing alerts first
-  document.querySelectorAll('.buzz-alert').forEach(el => el.remove());
-  
   const alert = document.createElement('div');
-  alert.className = `buzz-alert ${isError ? 'error' : 'success'}`;
-  alert.innerHTML = `
-    <span class="buzz-icon">${isError ? '⚠️' : '🔔'}</span>
-    <span>${message}</span>
-  `;
+  alert.className = `buzz-alert ${isError ? 'error' : ''}`;
+  alert.textContent = message;
   document.body.appendChild(alert);
-  
-  setTimeout(() => {
-    alert.classList.add('fade-out');
-    setTimeout(() => alert.remove(), 500);
-  }, isError ? 3000 : 2000);
-}
-
-function logBuzzActivity(groupName, memberCount) {
-  console.log(`[${new Date().toISOString()}] Buzz sent to ${groupName} (${memberCount} members)`);
-  // You could also send this to analytics or save locally
+  setTimeout(() => alert.remove(), 2000);
 }
 
 // ====================== SOCKET HANDLERS ====================== //
 function initSocketConnection() {
-  if (!socket) {
-    console.error("Socket not initialized");
-    return;
-  }
-
-  // Connection established
   socket.on("connect", () => {
-    console.log("Socket connected");
-    if (!currentUser?.phone) {
-      console.warn("No current user for socket auth");
-      return;
-    }
+    if (!currentUser?.phone) return;
     
-    // Authenticate with server
-    socket.emit('authenticate', { 
-      userId: currentUser.phone,
-      token: generateAuthToken() // Implement this if needed
-    }, (authResponse) => {
-      if (authResponse?.error) {
-        console.error("Authentication failed:", authResponse.error);
-      }
-    });
+    socket.emit('authenticate', { userId: currentUser.phone });
     
-    // Rejoin current group if needed
     if (currentGroupId) {
-      joinGroupRoom(currentGroupId);
+      socket.emit('join_group', {
+        userId: currentUser.phone,
+        groupId: currentGroupId
+      });
     }
   });
 
-  // Handle incoming buzz
   socket.on("buzz", (data) => {
-    if (!data?.sender || data.sender === currentUser.phone) return;
-    
-    try {
+    if (data?.sender !== currentUser?.phone) {
       playBuzzSound();
-      showBuzzAlert(`${data.senderName || "Someone"} buzzed the group!`);
-      
-      // Visual feedback
-      highlightGroup(data.groupId);
-    } catch (error) {
-      console.error("Error handling buzz:", error);
+      showBuzzAlert(`${data.senderName || "Someone"} buzzed!`);
     }
   });
 
-  // Handle connection errors
-  socket.on("connect_error", (error) => {
-    console.error("Connection error:", error);
-    showBuzzAlert("Connection problem - reconnecting...", true);
+  socket.on("disconnect", () => {
+    setTimeout(() => socket.connect(), 1000);
   });
-
-  // Auto-reconnect
-  socket.on("disconnect", (reason) => {
-    console.log("Disconnected:", reason);
-    if (reason === "io server disconnect") {
-      // Manual reconnect needed
-      socket.connect();
-    }
-    // Other disconnections will auto-reconnect
-  });
-}
-
-function joinGroupRoom(groupId) {
-  if (!socket.connected) return;
-  
-  socket.emit('join_group', {
-    userId: currentUser.phone,
-    groupId: groupId,
-    timestamp: Date.now()
-  }, (response) => {
-    if (response?.error) {
-      console.error("Failed to join group:", response.error);
-    }
-  });
-}
-
-function highlightGroup(groupName) {
-  const groupElement = document.querySelector(`[data-group-name="${groupName}"]`);
-  if (groupElement) {
-    groupElement.classList.add('buzz-highlight');
-    setTimeout(() => {
-      groupElement.classList.remove('buzz-highlight');
-    }, 2000);
-  }
 }
 
 // ====================== INITIALIZATION ====================== //
 document.addEventListener('DOMContentLoaded', () => {
-  try {
-    const savedUser = localStorage.getItem('currentUser');
-    if (savedUser) {
-      currentUser = JSON.parse(savedUser);
-      groups = currentUser.groups || [];
-      
-      // Initialize systems
-      initAudio();
-      initSocketConnection();
-      
-      // Check if we need to reconnect to a specific group
-      const lastGroup = sessionStorage.getItem('lastActiveGroup');
-      if (lastGroup) {
-        currentGroupId = lastGroup;
-      }
-      
-      renderDashboard();
-    } else {
-      renderLogin();
-    }
-  } catch (error) {
-    console.error("Initialization error:", error);
-    showBuzzAlert("System error - please refresh", true);
-    renderLogin(); // Fallback to login screen
+  const savedUser = localStorage.getItem('currentUser');
+  if (savedUser) {
+    currentUser = JSON.parse(savedUser);
+    groups = currentUser.groups || [];
+    initAudio();
+    initSocketConnection();
+    renderDashboard();
+  } else {
+    renderLogin();
   }
 });
