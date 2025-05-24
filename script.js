@@ -150,142 +150,58 @@ function logout() {
 // ====================== GROUP FUNCTIONS ====================== //
 function createGroup() {
   const name = prompt("Group name:")?.trim();
-  if (!name) {
-    alert("Group name cannot be empty");
-    return;
-  }
-
-  // Check if group name already exists
-  if (groups.some(group => group.name.toLowerCase() === name.toLowerCase())) {
-    alert("A group with this name already exists");
-    return;
-  }
+  if (!name) return;
 
   groups.push({ 
     name, 
     members: [{ 
       name: currentUser.name, 
-      phone: currentUser.phone,
-      isAdmin: true 
+      phone: currentUser.phone 
     }] 
   });
   saveGroups();
   renderDashboard();
-  showNotification(`Group "${name}" created successfully!`);
 }
 
 function addMember(groupIndex) {
   const name = prompt("Member name:")?.trim();
-  if (!name) {
-    alert("Member name cannot be empty");
-    return;
-  }
+  const phone = prompt("Phone number:")?.trim();
+  if (!name || !phone) return;
 
-  let phone = prompt("Phone number:")?.trim();
-  if (!phone) {
-    alert("Phone number cannot be empty");
-    return;
-  }
-
-  // Basic phone number validation
-  if (!/^\d{10,15}$/.test(phone)) {
-    alert("Please enter a valid phone number (10-15 digits)");
-    return;
-  }
-
-  // Check if member already exists in group
-  const group = groups[groupIndex];
-  if (group.members.some(member => member.phone === phone)) {
-    alert("This member is already in the group");
-    return;
-  }
-
-  group.members.push({ name, phone });
+  groups[groupIndex].members.push({ name, phone });
   saveGroups();
   renderGroup(groupIndex);
-  showNotification(`Added ${name} to ${group.name}`);
 }
 
 function removeMember(groupIndex, memberIndex) {
-  const group = groups[groupIndex];
-  const member = group.members[memberIndex];
-  
-  if (group.members.length <= 1) {
-    alert("Cannot remove the last member from a group");
-    return;
+  if (groups[groupIndex].members.length <= 1) {
+    return alert("Can't remove last member");
   }
-
-  // Prevent removing yourself if you're the admin
-  if (member.phone === currentUser.phone && member.isAdmin) {
-    if (!confirm("You're the admin. Removing yourself will delete the group. Continue?")) {
-      return;
-    }
-    removeGroup(groupIndex);
-    return;
-  }
-
-  if (!confirm(`Remove ${member.name} from ${group.name}?`)) return;
-  
-  group.members.splice(memberIndex, 1);
+  groups[groupIndex].members.splice(memberIndex, 1);
   saveGroups();
   renderGroup(groupIndex);
-  showNotification(`Removed ${member.name} from ${group.name}`);
 }
 
 function editGroup(groupIndex) {
-  const group = groups[groupIndex];
-  const newName = prompt("New name:", group.name)?.trim();
+  const newName = prompt("New name:", groups[groupIndex].name)?.trim();
+  if (!newName) return;
   
-  if (!newName) {
-    alert("Group name cannot be empty");
-    return;
-  }
-
-  if (newName === group.name) return; // No change
-
-  // Check if new name already exists
-  if (groups.some((g, i) => i !== groupIndex && g.name.toLowerCase() === newName.toLowerCase())) {
-    alert("A group with this name already exists");
-    return;
-  }
-
-  group.name = newName;
+  groups[groupIndex].name = newName;
   saveGroups();
   renderDashboard();
-  showNotification(`Group renamed to "${newName}"`);
 }
 
 function removeGroup(groupIndex) {
-  const groupName = groups[groupIndex].name;
-  if (!confirm(`Are you sure you want to delete "${groupName}"? This cannot be undone.`)) return;
+  if (!confirm(`Delete "${groups[groupIndex].name}"?`)) return;
   
   groups.splice(groupIndex, 1);
   saveGroups();
   renderDashboard();
-  showNotification(`Group "${groupName}" has been deleted`);
 }
 
 function saveGroups() {
-  try {
-    currentUser.groups = groups;
-    localStorage.setItem(currentUser.phone, JSON.stringify(currentUser));
-  } catch (error) {
-    console.error("Error saving groups:", error);
-    alert("Failed to save groups. Please try again.");
-  }
-}
-
-// Helper function for notifications
-function showNotification(message, duration = 3000) {
-  const notification = document.createElement('div');
-  notification.className = 'notification';
-  notification.textContent = message;
-  document.body.appendChild(notification);
-  
-  setTimeout(() => {
-    notification.classList.add('fade-out');
-    setTimeout(() => notification.remove(), 500);
-  }, duration);
+  currentUser.groups = groups;
+  localStorage.setItem(currentUser.phone, JSON.stringify(currentUser));
 }
 
 // ====================== BUZZ SYSTEM ====================== //
